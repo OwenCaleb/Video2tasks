@@ -40,6 +40,121 @@ This tool uses a **distributed client-server architecture** with VLMs (like Qwen
 
 ---
 
+## 📊 Output Example
+
+### VLM Reasoning Process
+
+The VLM analyzes each frame window and provides detailed reasoning about task transitions:
+
+<details>
+<summary>🔍 Click to see VLM thought process</summary>
+
+```json
+{
+  "thought": "Frames 0-2: The person is standing, hands open, wearing gloves, facing the room. 
+              No object interaction yet. 
+              Frame 3: The person reaches toward a white tote bag on the sofa. 
+              Frame 4: The person grasps the tote bag and begins lifting it. 
+              Frames 5-11: The person continues manipulating the tote bag, opening it, 
+              adjusting its straps, and handling its contents. 
+              This is a continuous interaction with the same object (the tote bag). 
+              Frame 12: The person reaches into the bag and pulls out a white object 
+              with a black strap (likely a mask or headgear). 
+              The interaction from frame 12 onward shifts from the tote bag to the white object. 
+              Therefore, a switch occurs at frame 12.",
+  "transitions": [12],
+  "instructions": ["Pick up and manipulate the tote bag", "Retrieve and adjust the white face mask"]
+}
+```
+
+</details>
+
+### Final Segmentation Output
+
+A 4501-frame video automatically split into 16 single-task segments:
+
+```json
+{
+  "video_id": "1765279974654",
+  "nframes": 4501,
+  "segments": [
+    {"seg_id": 0,  "start_frame": 0,    "end_frame": 373,  "instruction": "Pick up and manipulate the tote bag"},
+    {"seg_id": 1,  "start_frame": 373,  "end_frame": 542,  "instruction": "Retrieve and adjust the white face mask"},
+    {"seg_id": 2,  "start_frame": 542,  "end_frame": 703,  "instruction": "Open and place items into the bag"},
+    {"seg_id": 3,  "start_frame": 703,  "end_frame": 912,  "instruction": "Place the first black object into the tote bag"},
+    {"seg_id": 4,  "start_frame": 912,  "end_frame": 1214, "instruction": "Place the second black object into the tote bag"},
+    {"seg_id": 5,  "start_frame": 1214, "end_frame": 1375, "instruction": "Place the white cup on the table"},
+    {"seg_id": 6,  "start_frame": 1375, "end_frame": 1524, "instruction": "Move the cup to the right table"},
+    {"seg_id": 7,  "start_frame": 1524, "end_frame": 1784, "instruction": "Connect the power adapter to the cable"},
+    {"seg_id": 8,  "start_frame": 1784, "end_frame": 2991, "instruction": "Plug the device into the power strip"},
+    {"seg_id": 9,  "start_frame": 2991, "end_frame": 3135, "instruction": "Interact with black object on coffee table"},
+    {"seg_id": 10, "start_frame": 3135, "end_frame": 3238, "instruction": "Adjust the ashtray"},
+    {"seg_id": 11, "start_frame": 3238, "end_frame": 3359, "instruction": "Interact with the white mug"},
+    {"seg_id": 12, "start_frame": 3359, "end_frame": 3478, "instruction": "Move the black rectangular object and cup"},
+    {"seg_id": 13, "start_frame": 3478, "end_frame": 3711, "instruction": "Pick up the ashtray"},
+    {"seg_id": 14, "start_frame": 3711, "end_frame": 4095, "instruction": "Move the white slippers from the shoe rack"},
+    {"seg_id": 15, "start_frame": 4095, "end_frame": 4501, "instruction": "Raise the window blind"}
+  ]
+}
+```
+
+> 🎯 Each segment contains exactly ONE task with auto-generated natural language instruction — ready for VLA training!
+
+---
+
+## 💡 Why This Architecture?
+
+<table>
+<tr>
+<td width="50%">
+
+### 🧠 Distributed Architecture
+
+Not just a single script. FastAPI acts as the orchestrator, Workers handle inference only.
+
+**Run Server on one 4090, then connect 10 machines running Workers to process massive datasets in parallel.**
+
+This is production-grade thinking.
+
+</td>
+<td width="50%">
+
+### 🛡️ Production-Ready Resilience
+
+- ⏱️ Inflight timeout & re-dispatch
+- 🔄 Configurable retry limits
+- 📍 `.DONE` checkpoint markers for resume
+
+Critical mechanisms for running large-scale tasks to completion.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🎯 Smart Segmentation Algorithm
+
+Not just throwing images at a model. `build_segments_via_cuts` performs **weighted voting** across overlapping windows with **Hanning Window** edge weighting.
+
+Solves the classic "unstable edge detection" problem.
+
+</td>
+<td width="50%">
+
+### ✍️ Domain-Specific Prompts
+
+`prompt_switch_detection` explicitly distinguishes:
+- **True Switch**: Transition to a new object
+- **False Switch**: Different operation on the same object
+
+Tailored for manipulation datasets, **significantly reducing over-segmentation**.
+
+</td>
+</tr>
+</table>
+
+---
+
 ## ✨ Features
 
 | Feature | Description |

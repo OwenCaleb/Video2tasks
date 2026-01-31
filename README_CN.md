@@ -40,6 +40,65 @@
 
 ---
 
+## 📊 输出示例
+
+### VLM 推理过程
+
+VLM 会分析每个视频窗口，并提供详细的任务切换推理：
+
+<details>
+<summary>🔍 点击查看 VLM 推理过程</summary>
+
+```json
+{
+  "thought": "帧 0-2: 人站立，双手张开，戴着手套，面向房间。尚无物体交互。
+              帧 3: 人伸手去拿沙发上的白色手提袋。
+              帧 4: 人抓住手提袋并开始提起。
+              帧 5-11: 人继续操作手提袋，打开它，调整肩带，处理里面的物品。
+              这是与同一物体（手提袋）的连续交互。
+              帧 12: 人伸手进包里，拿出一个带黑色绑带的白色物体（可能是口罩或头戴设备）。
+              从帧 12 开始，交互对象从手提袋切换到白色物体。
+              因此，切换点发生在帧 12。",
+  "transitions": [12],
+  "instructions": ["拿起并操作手提袋", "取出并调整白色口罩"]
+}
+```
+
+</details>
+
+### 最终切分结果
+
+一个 4501 帧的视频自动切分成 16 个单任务片段：
+
+```json
+{
+  "video_id": "1765279974654",
+  "nframes": 4501,
+  "segments": [
+    {"seg_id": 0,  "start_frame": 0,    "end_frame": 373,  "instruction": "拿起并操作手提袋"},
+    {"seg_id": 1,  "start_frame": 373,  "end_frame": 542,  "instruction": "取出并调整白色口罩"},
+    {"seg_id": 2,  "start_frame": 542,  "end_frame": 703,  "instruction": "打开袋子并放入物品"},
+    {"seg_id": 3,  "start_frame": 703,  "end_frame": 912,  "instruction": "将第一个黑色物体放入手提袋"},
+    {"seg_id": 4,  "start_frame": 912,  "end_frame": 1214, "instruction": "将第二个黑色物体放入手提袋"},
+    {"seg_id": 5,  "start_frame": 1214, "end_frame": 1375, "instruction": "将白色杯子放在桌上"},
+    {"seg_id": 6,  "start_frame": 1375, "end_frame": 1524, "instruction": "将杯子移到右边的桌子"},
+    {"seg_id": 7,  "start_frame": 1524, "end_frame": 1784, "instruction": "将电源适配器连接到电缆"},
+    {"seg_id": 8,  "start_frame": 1784, "end_frame": 2991, "instruction": "将设备插入电源插排"},
+    {"seg_id": 9,  "start_frame": 2991, "end_frame": 3135, "instruction": "与茶几上的黑色物体交互"},
+    {"seg_id": 10, "start_frame": 3135, "end_frame": 3238, "instruction": "调整烟灰缸"},
+    {"seg_id": 11, "start_frame": 3238, "end_frame": 3359, "instruction": "与白色马克杯交互"},
+    {"seg_id": 12, "start_frame": 3359, "end_frame": 3478, "instruction": "移动黑色长方形物体和杯子"},
+    {"seg_id": 13, "start_frame": 3478, "end_frame": 3711, "instruction": "拿起烟灰缸"},
+    {"seg_id": 14, "start_frame": 3711, "end_frame": 4095, "instruction": "将白色拖鞋从鞋架移走"},
+    {"seg_id": 15, "start_frame": 4095, "end_frame": 4501, "instruction": "升起窗帘"}
+  ]
+}
+```
+
+> 🎯 每个片段只包含**一个任务**，并自动生成自然语言指令 —— 直接用于 VLA 训练！
+
+---
+
 ## 💡 为什么选择这套架构？
 
 <table>
