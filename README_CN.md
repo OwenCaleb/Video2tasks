@@ -16,7 +16,22 @@
 
 ## 📖 概览
 
-Robot Video Segmentor 是一个用于机器人操作视频切分的分布式系统，基于视觉语言模型（VLM）完成任务切换点检测，并聚合生成可用的任务片段。
+### 🎯 解决什么问题？
+
+训练 **VLA（Vision-Language-Action）模型**（如 [π₀ (pi-zero)](https://www.physicalintelligence.company/blog/pi0)）时，你需要的是**单任务视频片段** —— 每个视频只包含一个任务。然而，真实的机器人演示视频往往包含**多个连续任务**：
+
+```
+原始视频: [拿起叉子] → [放下叉子] → [拿起勺子] → [放下勺子]
+                ↓ Robot Video Segmentor ↓
+输出:     segment_001.mp4   segment_002.mp4   segment_003.mp4   segment_004.mp4
+          "拿起叉子"         "放下叉子"         "拿起勺子"         "放下勺子"
+```
+
+**Robot Video Segmentor 自动检测任务边界，将多任务视频切分成干净的单任务片段，直接用于 VLA 训练。**
+
+### 🔧 工作原理
+
+本工具采用**分布式 Client-Server 架构**，使用视觉语言模型（如 Qwen3-VL）分析视频帧，智能检测任务切换点。
 
 | 组件 | 描述 |
 |------|------|

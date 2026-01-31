@@ -16,7 +16,22 @@
 
 ## 📖 Overview
 
-Robot Video Segmentor provides a **client-server architecture** for analyzing robot videos and detecting task boundaries (switch points) using VLMs like Qwen3-VL.
+### 🎯 What Problem Does This Solve?
+
+When training **VLA (Vision-Language-Action) models** like [π₀ (pi-zero)](https://www.physicalintelligence.company/blog/pi0), you need **single-task video segments** — one task per clip. However, real-world robot demonstration videos often contain **multiple consecutive tasks**:
+
+```
+Raw Video: [Pick fork] → [Place fork] → [Pick spoon] → [Place spoon]
+                ↓ Robot Video Segmentor ↓
+Output:    segment_001.mp4   segment_002.mp4   segment_003.mp4   segment_004.mp4
+           "Pick fork"       "Place fork"      "Pick spoon"      "Place spoon"
+```
+
+**Robot Video Segmentor automatically detects task boundaries and splits multi-task videos into clean, single-task segments ready for VLA training.**
+
+### 🔧 How It Works
+
+This tool uses a **distributed client-server architecture** with VLMs (like Qwen3-VL) to analyze video frames and intelligently detect task switch points.
 
 | Component | Description |
 |-----------|-------------|
