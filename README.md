@@ -42,28 +42,62 @@ This tool uses a **distributed client-server architecture** with VLMs (like Qwen
 
 ## 📊 Output Example
 
-### VLM Reasoning Process
+### VLM Window-by-Window Reasoning
 
-The VLM analyzes each frame window and provides detailed reasoning about task transitions:
+The VLM analyzes each overlapping frame window and provides detailed reasoning about task transitions:
 
 <details>
-<summary>🔍 Click to see VLM thought process</summary>
+<summary>🔍 Click to see VLM reasoning for multiple windows</summary>
 
+**Window 0** - Detecting bag → mask transition:
 ```json
 {
-  "thought": "Frames 0-2: The person is standing, hands open, wearing gloves, facing the room. 
-              No object interaction yet. 
-              Frame 3: The person reaches toward a white tote bag on the sofa. 
-              Frame 4: The person grasps the tote bag and begins lifting it. 
-              Frames 5-11: The person continues manipulating the tote bag, opening it, 
-              adjusting its straps, and handling its contents. 
-              This is a continuous interaction with the same object (the tote bag). 
-              Frame 12: The person reaches into the bag and pulls out a white object 
-              with a black strap (likely a mask or headgear). 
-              The interaction from frame 12 onward shifts from the tote bag to the white object. 
-              Therefore, a switch occurs at frame 12.",
-  "transitions": [12],
-  "instructions": ["Pick up and manipulate the tote bag", "Retrieve and adjust the white face mask"]
+  "task_id": "LongData601-1189::1765279974654_w0",
+  "window_id": 0,
+  "vlm_json": {
+    "thought": "Frames 0-2: The person is standing, hands open, wearing gloves, facing the room. No object interaction yet. Frame 3: The person reaches toward a white tote bag on the sofa. Frame 4: The person grasps the tote bag and begins lifting it. Frames 5-11: The person continues manipulating the tote bag, opening it, adjusting its straps, and handling its contents. This is a continuous interaction with the same object (the tote bag). Frame 12: The person reaches into the bag and pulls out a white object with a black strap (likely a mask or headgear). The interaction from frame 12 onward shifts from the tote bag to the white object (mask). Therefore, a switch occurs at frame 12.",
+    "transitions": [12],
+    "instructions": ["Pick up and manipulate the tote bag", "Retrieve and adjust the white face mask"]
+  }
+}
+```
+
+**Window 3** - Detecting multiple object switches:
+```json
+{
+  "task_id": "LongData601-1189::1765279974654_w3",
+  "window_id": 3,
+  "vlm_json": {
+    "thought": "Frames 0-2: The robot's left hand reaches for and grasps a small black object from the left table. The right hand holds a white tote bag. Frames 3-5: The left hand places the black object into the tote bag. Frames 6-7: The left hand releases the black object into the bag and then reaches back to pick up another small black object. This is a clear switch: the robot completes interaction with the first black object and starts interacting with a second, distinct black object. Frame 15: The robot reaches for the white kettle on the left table. This marks a new interaction with a different object (the kettle). Therefore, switches are detected at frame 6 (first→second black object) and frame 15 (bag→kettle).",
+    "transitions": [6, 15],
+    "instructions": ["Place the first black object into the tote bag", "Place the second black object into the tote bag", "Pick up the white kettle"]
+  }
+}
+```
+
+**Window 8** - No switch detected (continuous task):
+```json
+{
+  "task_id": "LongData601-1189::1765279974654_w8",
+  "window_id": 8,
+  "vlm_json": {
+    "thought": "Frames 0-2: The robot is holding a small white object (possibly a charger or adapter) in both hands and appears to be manipulating or connecting it to a cable. Frames 3-15: The robot continues to hold the same object and cable, moving it toward an electrical outlet near the TV stand. There is no clear release of the object or grasping of a new distinct object. The entire sequence involves manipulating a single object. No switch occurs.",
+    "transitions": [],
+    "instructions": ["Move the charger toward the power outlet"]
+  }
+}
+```
+
+**Window 14** - Complex multi-object sequence:
+```json
+{
+  "task_id": "LongData601-1189::1765279974654_w14",
+  "window_id": 14,
+  "vlm_json": {
+    "thought": "Frames 0-2: The person is interacting with objects on the left table — moving a small white cup and adjusting a black rectangular object. Frame 3: The right hand moves away from the black object and reaches toward the ashtray. This marks the end of interaction with the black object. Frame 4: The right hand grasps the ashtray. This is a clear switch to a new object. Frames 5-7: The person moves the ashtray toward the trash can. Frame 11: The right hand reaches down to pick up a pair of white slippers from the floor. This is a clear switch from ashtray to slippers. Switches occur at frame 3 (black object→ashtray) and frame 11 (ashtray→slippers).",
+    "transitions": [3, 11],
+    "instructions": ["Move the black rectangular object and cup", "Pick up the ashtray", "Pick up the white slippers", "Place the slippers on the rack"]
+  }
 }
 ```
 

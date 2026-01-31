@@ -42,25 +42,62 @@
 
 ## 📊 输出示例
 
-### VLM 推理过程
+### VLM 逐窗口推理过程
 
-VLM 会分析每个视频窗口，并提供详细的任务切换推理：
+VLM 会分析每个重叠的帧窗口，并提供详细的任务切换推理：
 
 <details>
-<summary>🔍 点击查看 VLM 推理过程</summary>
+<summary>🔍 点击查看多个窗口的 VLM 推理过程</summary>
 
+**Window 0** - 检测 bag → mask 切换:
 ```json
 {
-  "thought": "帧 0-2: 人站立，双手张开，戴着手套，面向房间。尚无物体交互。
-              帧 3: 人伸手去拿沙发上的白色手提袋。
-              帧 4: 人抓住手提袋并开始提起。
-              帧 5-11: 人继续操作手提袋，打开它，调整肩带，处理里面的物品。
-              这是与同一物体（手提袋）的连续交互。
-              帧 12: 人伸手进包里，拿出一个带黑色绑带的白色物体（可能是口罩或头戴设备）。
-              从帧 12 开始，交互对象从手提袋切换到白色物体。
-              因此，切换点发生在帧 12。",
-  "transitions": [12],
-  "instructions": ["拿起并操作手提袋", "取出并调整白色口罩"]
+  "task_id": "LongData601-1189::1765279974654_w0",
+  "window_id": 0,
+  "vlm_json": {
+    "thought": "Frames 0-2: The person is standing, hands open, wearing gloves, facing the room. No object interaction yet. Frame 3: The person reaches toward a white tote bag on the sofa. Frame 4: The person grasps the tote bag and begins lifting it. Frames 5-11: The person continues manipulating the tote bag, opening it, adjusting its straps, and handling its contents. This is a continuous interaction with the same object (the tote bag). Frame 12: The person reaches into the bag and pulls out a white object with a black strap (likely a mask or headgear). The interaction from frame 12 onward shifts from the tote bag to the white object (mask). Therefore, a switch occurs at frame 12.",
+    "transitions": [12],
+    "instructions": ["Pick up and manipulate the tote bag", "Retrieve and adjust the white face mask"]
+  }
+}
+```
+
+**Window 3** - 检测多物体切换:
+```json
+{
+  "task_id": "LongData601-1189::1765279974654_w3",
+  "window_id": 3,
+  "vlm_json": {
+    "thought": "Frames 0-2: The robot's left hand reaches for and grasps a small black object from the left table. The right hand holds a white tote bag. Frames 3-5: The left hand places the black object into the tote bag. Frames 6-7: The left hand releases the black object into the bag and then reaches back to pick up another small black object. This is a clear switch: the robot completes interaction with the first black object and starts interacting with a second, distinct black object. Frame 15: The robot reaches for the white kettle on the left table. This marks a new interaction with a different object (the kettle). Therefore, switches are detected at frame 6 (first→second black object) and frame 15 (bag→kettle).",
+    "transitions": [6, 15],
+    "instructions": ["Place the first black object into the tote bag", "Place the second black object into the tote bag", "Pick up the white kettle"]
+  }
+}
+```
+
+**Window 8** - 未检测到切换（连续任务）:
+```json
+{
+  "task_id": "LongData601-1189::1765279974654_w8",
+  "window_id": 8,
+  "vlm_json": {
+    "thought": "Frames 0-2: The robot is holding a small white object (possibly a charger or adapter) in both hands and appears to be manipulating or connecting it to a cable. Frames 3-15: The robot continues to hold the same object and cable, moving it toward an electrical outlet near the TV stand. There is no clear release of the object or grasping of a new distinct object. The entire sequence involves manipulating a single object. No switch occurs.",
+    "transitions": [],
+    "instructions": ["Move the charger toward the power outlet"]
+  }
+}
+```
+
+**Window 14** - 复杂多物体序列:
+```json
+{
+  "task_id": "LongData601-1189::1765279974654_w14",
+  "window_id": 14,
+  "vlm_json": {
+    "thought": "Frames 0-2: The person is interacting with objects on the left table — moving a small white cup and adjusting a black rectangular object. Frame 3: The right hand moves away from the black object and reaches toward the ashtray. This marks the end of interaction with the black object. Frame 4: The right hand grasps the ashtray. This is a clear switch to a new object. Frames 5-7: The person moves the ashtray toward the trash can. Frame 11: The right hand reaches down to pick up a pair of white slippers from the floor. This is a clear switch from ashtray to slippers. Switches occur at frame 3 (black object→ashtray) and frame 11 (ashtray→slippers).",
+    "transitions": [3, 11],
+    "instructions": ["Move the black rectangular object and cup", "Pick up the ashtray", "Pick up the white slippers", "Place the slippers on the rack"]
+  }
 }
 ```
 
@@ -75,22 +112,22 @@ VLM 会分析每个视频窗口，并提供详细的任务切换推理：
   "video_id": "1765279974654",
   "nframes": 4501,
   "segments": [
-    {"seg_id": 0,  "start_frame": 0,    "end_frame": 373,  "instruction": "拿起并操作手提袋"},
-    {"seg_id": 1,  "start_frame": 373,  "end_frame": 542,  "instruction": "取出并调整白色口罩"},
-    {"seg_id": 2,  "start_frame": 542,  "end_frame": 703,  "instruction": "打开袋子并放入物品"},
-    {"seg_id": 3,  "start_frame": 703,  "end_frame": 912,  "instruction": "将第一个黑色物体放入手提袋"},
-    {"seg_id": 4,  "start_frame": 912,  "end_frame": 1214, "instruction": "将第二个黑色物体放入手提袋"},
-    {"seg_id": 5,  "start_frame": 1214, "end_frame": 1375, "instruction": "将白色杯子放在桌上"},
-    {"seg_id": 6,  "start_frame": 1375, "end_frame": 1524, "instruction": "将杯子移到右边的桌子"},
-    {"seg_id": 7,  "start_frame": 1524, "end_frame": 1784, "instruction": "将电源适配器连接到电缆"},
-    {"seg_id": 8,  "start_frame": 1784, "end_frame": 2991, "instruction": "将设备插入电源插排"},
-    {"seg_id": 9,  "start_frame": 2991, "end_frame": 3135, "instruction": "与茶几上的黑色物体交互"},
-    {"seg_id": 10, "start_frame": 3135, "end_frame": 3238, "instruction": "调整烟灰缸"},
-    {"seg_id": 11, "start_frame": 3238, "end_frame": 3359, "instruction": "与白色马克杯交互"},
-    {"seg_id": 12, "start_frame": 3359, "end_frame": 3478, "instruction": "移动黑色长方形物体和杯子"},
-    {"seg_id": 13, "start_frame": 3478, "end_frame": 3711, "instruction": "拿起烟灰缸"},
-    {"seg_id": 14, "start_frame": 3711, "end_frame": 4095, "instruction": "将白色拖鞋从鞋架移走"},
-    {"seg_id": 15, "start_frame": 4095, "end_frame": 4501, "instruction": "升起窗帘"}
+    {"seg_id": 0,  "start_frame": 0,    "end_frame": 373,  "instruction": "Pick up and manipulate the tote bag"},
+    {"seg_id": 1,  "start_frame": 373,  "end_frame": 542,  "instruction": "Retrieve and adjust the white face mask"},
+    {"seg_id": 2,  "start_frame": 542,  "end_frame": 703,  "instruction": "Open and place items into the bag"},
+    {"seg_id": 3,  "start_frame": 703,  "end_frame": 912,  "instruction": "Place the first black object into the tote bag"},
+    {"seg_id": 4,  "start_frame": 912,  "end_frame": 1214, "instruction": "Place the second black object into the tote bag"},
+    {"seg_id": 5,  "start_frame": 1214, "end_frame": 1375, "instruction": "Place the white cup on the table"},
+    {"seg_id": 6,  "start_frame": 1375, "end_frame": 1524, "instruction": "Move the cup to the right table"},
+    {"seg_id": 7,  "start_frame": 1524, "end_frame": 1784, "instruction": "Connect the power adapter to the cable"},
+    {"seg_id": 8,  "start_frame": 1784, "end_frame": 2991, "instruction": "Plug the device into the power strip"},
+    {"seg_id": 9,  "start_frame": 2991, "end_frame": 3135, "instruction": "Interact with black object on coffee table"},
+    {"seg_id": 10, "start_frame": 3135, "end_frame": 3238, "instruction": "Adjust the ashtray"},
+    {"seg_id": 11, "start_frame": 3238, "end_frame": 3359, "instruction": "Interact with the white mug"},
+    {"seg_id": 12, "start_frame": 3359, "end_frame": 3478, "instruction": "Move the black rectangular object and cup"},
+    {"seg_id": 13, "start_frame": 3478, "end_frame": 3711, "instruction": "Pick up the ashtray"},
+    {"seg_id": 14, "start_frame": 3711, "end_frame": 4095, "instruction": "Move the white slippers from the shoe rack"},
+    {"seg_id": 15, "start_frame": 4095, "end_frame": 4501, "instruction": "Raise the window blind"}
   ]
 }
 ```
