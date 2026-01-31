@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🤖 Robot Video Segmentor
+# 🎬 Video2Tasks
 
-**A distributed video segmentation system for robotic manipulation tasks using Vision-Language Models**
+**Split Multi-Task Robot Videos into Single-Task Segments with Auto-Generated Instructions for VLA Training**
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -18,25 +18,36 @@
 
 ### 🎯 What Problem Does This Solve?
 
-When training **VLA (Vision-Language-Action) models** like [π₀ (pi-zero)](https://www.physicalintelligence.company/blog/pi0), you need **single-task video segments** — one task per clip. However, real-world robot demonstration videos often contain **multiple consecutive tasks**:
+When training **VLA (Vision-Language-Action) models** like [π₀ (pi-zero)](https://www.physicalintelligence.company/blog/pi0), you need **single-task video segments with instruction labels**. However, real-world robot demonstration videos often contain **multiple consecutive tasks** without any annotation:
 
 ```
-Raw Video: [Pick fork] → [Place fork] → [Pick spoon] → [Place spoon]
-                ↓ Robot Video Segmentor ↓
-Output:    segment_001.mp4   segment_002.mp4   segment_003.mp4   segment_004.mp4
-           "Pick fork"       "Place fork"      "Pick spoon"      "Place spoon"
+Input:  Long video with multiple tasks, NO labels
+           ┃
+           ▼
+     ┌─────────────────────────────────────────────────────────────┐
+     │  🎬 Video2Tasks                                             │
+     │  • VLM-powered task boundary detection                      │
+     │  • Auto-generate natural language instructions              │
+     │  • Distributed processing for large-scale datasets          │
+     └─────────────────────────────────────────────────────────────┘
+           ┃
+           ▼
+Output: Single-task segments + instruction labels, READY for VLA training
+
+  segment_001.mp4         segment_002.mp4         segment_003.mp4
+  "Pick up the fork"      "Place the fork"        "Pick up the spoon"
 ```
 
-**Robot Video Segmentor automatically detects task boundaries and splits multi-task videos into clean, single-task segments ready for VLA training.**
+**Video2Tasks = Task Segmentation + Instruction Labeling → VLA Training Data Pipeline**
 
 ### 🔧 How It Works
 
-This tool uses a **distributed client-server architecture** with VLMs (like Qwen3-VL) to analyze video frames and intelligently detect task switch points.
+This tool uses a **distributed client-server architecture** with VLMs (like Qwen3-VL) to analyze video frames, intelligently detect task boundaries, and generate natural language instructions for each segment.
 
 | Component | Description |
 |-----------|-------------|
 | **Server** | Manages job queues, video frame extraction, and result aggregation |
-| **Worker** | Runs VLM inference to detect task transitions in video windows |
+| **Worker** | Runs VLM inference to detect task transitions and generate instructions |
 
 ---
 
@@ -226,8 +237,8 @@ Tailored for manipulation datasets, **significantly reducing over-segmentation**
 
 ```bash
 # Clone the repository
-git clone https://github.com/ly-geming/robot-video-segmentor.git
-cd robot-video-segmentor
+git clone https://github.com/ly-geming/video2tasks.git
+cd video2tasks
 
 # Install with core dependencies
 pip install -e .
@@ -250,12 +261,12 @@ vim config.yaml  # or your preferred editor
 
 **Terminal 1 - Start the Server:**
 ```bash
-rvs-server --config config.yaml
+v2t-server --config config.yaml
 ```
 
 **Terminal 2 - Start a Worker:**
 ```bash
-rvs-worker --config config.yaml
+v2t-worker --config config.yaml
 ```
 
 > 💡 **Tip:** You can start multiple workers to process videos in parallel!
@@ -339,7 +350,7 @@ worker:
 Implement the `VLMBackend` interface to add your own:
 
 ```python
-from robot_video_segmentor.vlm.base import VLMBackend
+from video2tasks.vlm.base import VLMBackend
 
 class MyBackend(VLMBackend):
     def infer(self, images, prompt):
@@ -352,8 +363,8 @@ class MyBackend(VLMBackend):
 ## 📁 Project Structure
 
 ```
-robot-video-segmentor/
-├── 📂 src/robot_video_segmentor/
+video2tasks/
+├── 📂 src/video2tasks/
 │   ├── config.py              # Configuration models
 │   ├── prompt.py              # Prompt templates
 │   ├── 📂 server/             # FastAPI server
@@ -381,7 +392,7 @@ robot-video-segmentor/
 
 ```bash
 # Validate configuration
-rvs-validate-config --config config.yaml
+v2t-validate --config config.yaml
 
 # Run tests
 pytest
