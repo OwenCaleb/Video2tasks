@@ -4,7 +4,7 @@ import time
 import json
 import base64
 from io import BytesIO
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import requests
 import numpy as np
@@ -13,6 +13,12 @@ from PIL import Image
 from ..config import Config
 from ..vlm import create_backend
 from ..prompt import prompt_switch_detection
+
+MAX_LOCAL_RETRIES = 2
+
+
+def _is_empty_vlm_json(vlm_json: Optional[Dict[str, Any]]) -> bool:
+    return (not isinstance(vlm_json, dict)) or (not vlm_json)
 
 
 def decode_b64_to_numpy(b64_str: str) -> Optional[np.ndarray]:
@@ -102,14 +108,29 @@ def run_worker(config: Config) -> None:
                         # Create dummy image
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
                 
-                # Run inference with proper prompt
+                # Run inference with proper prompt (local retry on empty output)
                 prompt = prompt_switch_detection(len(images))
-                vlm_json = backend.infer(images, prompt)
+                vlm_json: Dict[str, Any] = {}
                 
-                if vlm_json:
-                    print(f"[Done] {task_id} ({len(images)}f) -> Cuts: {vlm_json.get('transitions', [])}")
+                for attempt in range(MAX_LOCAL_RETRIES):
+                    try:
+                        vlm_json = backend.infer(images, prompt)
+                    except Exception as e:
+                        print(f"[Err] Inference failed: {e}")
+                        vlm_json = {}
+                    
+                    if not _is_empty_vlm_json(vlm_json):
+                        break
+                    
+                    print(
+                        f"[Warn] {task_id} Empty VLM JSON "
+                        f"(attempt {attempt + 1}/{MAX_LOCAL_RETRIES})"
+                    )
+                
+                if _is_empty_vlm_json(vlm_json):
+                    print(f"[Fail] {task_id} Returning empty to trigger server retry")
                 else:
-                    print(f"[Fail] {task_id} Returning empty")
+                    print(f"[Done] {task_id} ({len(images)}f) -> Cuts: {vlm_json.get('transitions', [])}")
                 
                 # Submit result
                 requests.post(

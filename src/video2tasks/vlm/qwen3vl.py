@@ -180,14 +180,9 @@ class Qwen3VLBackend(VLMBackend):
             skip_special_tokens=True
         )[0]
         
-        # Extract JSON
+        # Extract JSON (return empty dict on parse failure)
         result = extract_json(output_text)
-        
-        return result if result else {
-            "thought": "Failed to parse model output",
-            "transitions": [],
-            "instructions": []
-        }
+        return result
     
     def cleanup(self) -> None:
         """Cleanup model resources."""

@@ -72,11 +72,10 @@ class RemoteAPIBackend(VLMBackend):
         latency_s = time.time() - t0
 
         if r.status_code != 200:
-            return {
-                "thought": f"remote_api error: status={r.status_code} latency_s={latency_s:.3f}",
-                "transitions": [],
-                "instructions": [],
-            }
+            print(
+                f"[RemoteAPI] Error: status={r.status_code} latency_s={latency_s:.3f}"
+            )
+            return {}
 
         try:
             data = r.json()
@@ -91,6 +90,6 @@ class RemoteAPIBackend(VLMBackend):
                 return data["vlm_json"]
             if "text" in data and isinstance(data["text"], str):
                 parsed = _extract_json(data["text"])
-                return parsed if parsed else {"thought": data["text"], "transitions": [], "instructions": []}
+                return parsed
 
-        return {"thought": "remote_api returned unexpected response", "transitions": [], "instructions": []}
+        return {}

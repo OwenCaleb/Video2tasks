@@ -148,7 +148,7 @@ def create_app(config: Config) -> FastAPI:
         
         sample_key = f"{subset}::{sid}"
         with get_sample_lock(sample_key):
-            with open(windows_jsonl_path(samples_dir, sid), "a") as f:
+            with open(windows_jsonl_path(samples_dir, sid), "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         
         return {"status": "received"}
@@ -264,7 +264,7 @@ def create_app(config: Config) -> FastAPI:
                         # Load completed windows
                         done_wids = set()
                         if Path(w_path).exists():
-                            with open(w_path, "r") as f:
+                            with open(w_path, "r", encoding="utf-8") as f:
                                 for line in f:
                                     try:
                                         done_wids.add(json.loads(line)["window_id"])
@@ -334,7 +334,7 @@ def create_app(config: Config) -> FastAPI:
                         
                         by_wid = {}
                         if Path(w_path).exists():
-                            with open(w_path, "r") as f:
+                            with open(w_path, "r", encoding="utf-8") as f:
                                 for line in f:
                                     try:
                                         d = json.loads(line)
@@ -350,7 +350,7 @@ def create_app(config: Config) -> FastAPI:
                                 config.windowing.frames_per_window
                             )
                             
-                            with open(segments_path(ctx.samples_dir, sid), "w") as f:
+                            with open(segments_path(ctx.samples_dir, sid), "w", encoding="utf-8") as f:
                                 json.dump(final_res, f, indent=2, ensure_ascii=False)
                             
                             done_path = done_marker_path(ctx.samples_dir, sid)
