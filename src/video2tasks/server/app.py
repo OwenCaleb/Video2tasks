@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uvicorn
 
 from ..config import Config, DatasetConfig
@@ -24,9 +24,9 @@ class SubmitModel(BaseModel):
     """Model for job result submission."""
     task_id: str
     vlm_output: str = ""
-    vlm_json: Dict[str, Any] = {}
+    vlm_json: Dict[str, Any] = Field(default_factory=dict)
     latency_s: float = 0.0
-    meta: Dict[str, Any] = {}
+    meta: Dict[str, Any] = Field(default_factory=dict)
 
 
 @dataclass
