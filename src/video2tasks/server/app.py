@@ -268,57 +268,57 @@ def create_app(config: Config) -> FastAPI:
                                 for line in f:
                                     try:
                                         done_wids.add(json.loads(line)["window_id"])
-                                    except (json.JSONDecodeError, KeyError):
-                                        pass
+                                    except (json.JSONDecodeError, KeyError) as e:
+                                        print(f"[Warn] Corrupted line in {w_path}: {e}")
                         
-                        extractor = FrameExtractor(mp4)
-                        cnt = 0
-                        
-                        for w in windows:
-                            if w.window_id in done_wids:
-                                continue
+                        with FrameExtractor(mp4) as extractor:
+                            cnt = 0
                             
-                            tid = f"{ctx.subset}::{sid}_w{w.window_id}"
-                            
-                            # Check if already active
-                            active = False
-                            with queue_lock:
-                                if any(j["task_id"] == tid for j in job_queue) or tid in inflight:
-                                    active = True
-                            
-                            if active:
-                                continue
-                            
-                            job = {
-                                "task_id": tid,
-                                "images": extractor.get_many_b64(
-                                    w.frame_ids,
-                                    config.windowing.target_width,
-                                    config.windowing.target_height,
-                                    config.windowing.png_compression
-                                ),
-                                "meta": {
-                                    "subset": ctx.subset,
-                                    "sample_id": sid,
-                                    "window_id": w.window_id,
-                                    "frame_ids": w.frame_ids
+                            for w in windows:
+                                if w.window_id in done_wids:
+                                    continue
+                                
+                                tid = f"{ctx.subset}::{sid}_w{w.window_id}"
+                                
+                                # Check if already active
+                                active = False
+                                with queue_lock:
+                                    if any(j["task_id"] == tid for j in job_queue) or tid in inflight:
+                                        active = True
+                                
+                                if active:
+                                    continue
+                                
+                                job = {
+                                    "task_id": tid,
+                                    "images": extractor.get_many_b64(
+                                        w.frame_ids,
+                                        config.windowing.target_width,
+                                        config.windowing.target_height,
+                                        config.windowing.png_compression
+                                    ),
+                                    "meta": {
+                                        "subset": ctx.subset,
+                                        "sample_id": sid,
+                                        "window_id": w.window_id,
+                                        "frame_ids": w.frame_ids
+                                    }
                                 }
-                            }
-                            
-                            with queue_lock:
-                                job_queue.append(job)
-                            
-                            cnt += 1
-                            if cnt > 20:
-                                break
-                        
-                        extractor.close()
+                                
+                                with queue_lock:
+                                    job_queue.append(job)
+                                
+                                cnt += 1
+                                if cnt > 20:
+                                    break
                         
                         if cnt == 0:
                             sample_status[sid] = 2
                     
                     except Exception as e:
                         print(f"[Err] {ctx.subset}/{sid}: {e}")
+                        import traceback
+                        traceback.print_exc()
                         st["cur_idx"] += 1
                 
                 # Step B: Finalize

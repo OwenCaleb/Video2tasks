@@ -25,15 +25,16 @@ def _extract_json(text: str) -> Dict[str, Any]:
     t = text.replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(t)
-    except Exception:
-        pass
+    except json.JSONDecodeError as e:
+        print(f"[RemoteAPI] Failed to parse JSON directly: {e}")
 
     s = t.find("{")
     e = t.rfind("}")
     if s != -1 and e != -1 and e > s:
         try:
             return json.loads(t[s : e + 1])
-        except Exception:
+        except json.JSONDecodeError as e:
+            print(f"[RemoteAPI] Failed to extract JSON from text: {e}")
             return {}
     return {}
 
@@ -79,7 +80,8 @@ class RemoteAPIBackend(VLMBackend):
 
         try:
             data = r.json()
-        except Exception:
+        except json.JSONDecodeError as e:
+            print(f"[RemoteAPI] Failed to parse response JSON: {e}")
             data = {}
 
         if isinstance(data, dict):

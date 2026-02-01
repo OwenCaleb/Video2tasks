@@ -56,14 +56,22 @@ def run_worker(config: Config) -> None:
     
     print(f"[Worker] Connecting to {server_url}")
     
+    max_connection_retries = 30  # ~60 seconds total
+    connection_retry_count = 0
+    
     try:
         while True:
             try:
                 # Get job
                 try:
                     r = requests.get(f"{server_url}/get_job", timeout=60)
-                except requests.exceptions.RequestException:
-                    print(f"[Worker] Waiting for server at {server_url}...")
+                    connection_retry_count = 0  # Reset on successful connection
+                except requests.exceptions.RequestException as e:
+                    connection_retry_count += 1
+                    if connection_retry_count >= max_connection_retries:
+                        print(f"[Worker] Failed to connect after {max_connection_retries} retries. Exiting.")
+                        break
+                    print(f"[Worker] Waiting for server at {server_url}... (attempt {connection_retry_count}/{max_connection_retries})")
                     time.sleep(2)
                     continue
                 
@@ -76,8 +84,12 @@ def run_worker(config: Config) -> None:
                     time.sleep(0.5)
                     continue
                 
-                job = resp["data"]
-                task_id = job["task_id"]
+                job = resp.get("data")
+                if job is None:
+                    print("[Worker] Invalid job data received")
+                    time.sleep(1)
+                    continue
+                task_id = job.get("task_id", "unknown")
                 
                 # Decode images
                 images_b64 = job.get("images", [])
