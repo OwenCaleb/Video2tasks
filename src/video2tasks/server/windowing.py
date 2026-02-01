@@ -262,14 +262,17 @@ def build_segments_via_cuts(
         
         if candidates:
             best_inst = Counter(candidates).most_common(1)[0][0]
-            final_output.append({
-                "seg_id": seg_id,
-                "start_frame": s,
-                "end_frame": e,
-                "instruction": best_inst,
-                "confidence": 1.0
-            })
-            seg_id += 1
+        else:
+            best_inst = f"Task segment {seg_id}"
+        
+        final_output.append({
+            "seg_id": seg_id,
+            "start_frame": s,
+            "end_frame": e,
+            "instruction": best_inst,
+            "confidence": 1.0 if candidates else 0.5
+        })
+        seg_id += 1
     
     return {
         "sample_id": sample_id,

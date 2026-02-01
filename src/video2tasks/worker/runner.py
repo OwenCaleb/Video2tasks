@@ -12,6 +12,7 @@ from PIL import Image
 
 from ..config import Config
 from ..vlm import create_backend
+from ..prompt import prompt_switch_detection
 
 
 def decode_b64_to_numpy(b64_str: str) -> Optional[np.ndarray]:
@@ -89,8 +90,8 @@ def run_worker(config: Config) -> None:
                         # Create dummy image
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
                 
-                # Run inference
-                prompt = "Detect task boundaries in these video frames."
+                # Run inference with proper prompt
+                prompt = prompt_switch_detection(len(images))
                 vlm_json = backend.infer(images, prompt)
                 
                 if vlm_json:
