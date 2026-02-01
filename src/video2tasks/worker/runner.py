@@ -39,7 +39,14 @@ def run_worker(config: Config) -> None:
     if config.worker.backend == "qwen3vl":
         backend_kwargs = {
             "model_path": config.worker.qwen3vl.model_path,
-            "device_map": config.worker.qwen3vl.device_map
+            "device_map": config.worker.qwen3vl.device_map,
+        }
+    elif config.worker.backend == "remote_api":
+        backend_kwargs = {
+            "url": config.worker.remote_api.api_url,
+            "api_key": config.worker.remote_api.api_key,
+            "headers": config.worker.remote_api.headers,
+            "timeout_sec": config.worker.remote_api.timeout_sec,
         }
     
     backend = create_backend(config.worker.backend, **backend_kwargs)

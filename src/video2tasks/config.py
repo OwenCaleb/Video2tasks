@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 from pathlib import Path
+import json
 import os
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -39,16 +40,25 @@ class Qwen3VLConfig(BaseModel):
     device_map: str = Field(default="balanced", description="Device map strategy")
 
 
+class RemoteAPIConfig(BaseModel):
+    """Remote API backend configuration."""
+    api_url: str = Field(default="http://127.0.0.1:8080/infer", description="Remote API URL")
+    api_key: str = Field(default="", description="API key for remote API")
+    timeout_sec: float = Field(default=60.0, description="Request timeout in seconds")
+    headers: dict = Field(default_factory=dict, description="Extra headers for remote API")
+
+
 class WorkerConfig(BaseModel):
     """Worker configuration."""
     server_url: str = Field(default="http://127.0.0.1:8099", description="Server URL")
     backend: str = Field(default="dummy", description="VLM backend type")
     qwen3vl: Qwen3VLConfig = Field(default_factory=Qwen3VLConfig)
+    remote_api: RemoteAPIConfig = Field(default_factory=RemoteAPIConfig)
 
     @field_validator("backend")
     @classmethod
     def validate_backend(cls, v: str) -> str:
-        allowed = ["dummy", "qwen3vl"]
+        allowed = ["dummy", "qwen3vl", "remote_api"]
         if v not in allowed:
             raise ValueError(f"backend must be one of {allowed}, got {v}")
         return v
@@ -125,6 +135,18 @@ class Config(BaseModel):
             config.worker.qwen3vl.model_path = os.environ["MODEL_PATH"]
         if "BACKEND" in os.environ:
             config.worker.backend = os.environ["BACKEND"]
+        if "REMOTE_API_URL" in os.environ:
+            config.worker.remote_api.api_url = os.environ["REMOTE_API_URL"]
+        if "REMOTE_API_KEY" in os.environ:
+            config.worker.remote_api.api_key = os.environ["REMOTE_API_KEY"]
+        if "REMOTE_API_TIMEOUT" in os.environ:
+            config.worker.remote_api.timeout_sec = float(os.environ["REMOTE_API_TIMEOUT"])
+        if "REMOTE_API_HEADERS" in os.environ:
+            headers_raw = os.environ["REMOTE_API_HEADERS"]
+            headers = json.loads(headers_raw)
+            if not isinstance(headers, dict):
+                raise ValueError("REMOTE_API_HEADERS must be a JSON object")
+            config.worker.remote_api.headers = headers
         
         return config
     

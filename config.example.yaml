@@ -24,12 +24,19 @@ server:
 # Worker configuration
 worker:
   server_url: "http://127.0.0.1:8099"
-  backend: "dummy"  # Options: "dummy", "qwen3vl"
+  backend: "dummy"  # Options: "dummy", "qwen3vl", "remote_api"
   
   # Qwen3VL-specific settings (only used when backend: qwen3vl)
   qwen3vl:
     model_path: "/path/to/Qwen3-VL-32B-Instruct"  # Or HuggingFace model name
     device_map: "balanced"  # "auto", "balanced", "balanced_low_0", or specific device
+
+  # Remote API settings (only used when backend: remote_api)
+  remote_api:
+    api_url: "http://127.0.0.1:8080/infer"
+    api_key: ""
+    timeout_sec: 60.0
+    headers: {}
 
 # Windowing configuration
 windowing:
