@@ -68,7 +68,7 @@ def parse_datasets(config: Config) -> List[DatasetCtx]:
 
 def create_app(config: Config) -> FastAPI:
     """Create and configure FastAPI application."""
-    app = FastAPI(title="Robot Video Segmentor Server")
+    app = FastAPI(title="Video2Tasks Server")
     
     # Initialize dataset contexts
     dataset_ctxs = parse_datasets(config)

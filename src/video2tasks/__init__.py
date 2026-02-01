@@ -1,4 +1,4 @@
-"""Robot Video Segmentor - Main package."""
+"""Video2Tasks - Multi-task video to single-task segments for VLA training."""
 
 __version__ = "0.1.0"
 

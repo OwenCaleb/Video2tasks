@@ -13,7 +13,7 @@ from ..worker.runner import run_worker
     help="Path to configuration file"
 )
 def main(config: Path) -> None:
-    """Start the Robot Video Segmentor worker."""
+    """Start the Video2Tasks worker."""
     if config:
         cfg = Config.from_yaml(config)
     else:

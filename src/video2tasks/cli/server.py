@@ -13,7 +13,7 @@ from .app import run_server
     help="Path to configuration file"
 )
 def main(config: Path) -> None:
-    """Start the Robot Video Segmentor server."""
+    """Start the Video2Tasks server."""
     if config:
         cfg = Config.from_yaml(config)
     else:
