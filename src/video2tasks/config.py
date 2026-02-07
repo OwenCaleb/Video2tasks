@@ -99,11 +99,11 @@ class VQAConfig(BaseModel):
     )
     target_width: int = Field(
         default=424,
-        description="Target frame width for VLM input (resize before encoding)"
+        description="Target frame width for VLM input"
     )
     target_height: int = Field(
         default=240,
-        description="Target frame height for VLM input (resize before encoding)"
+        description="Target frame height for VLM input"
     )
     output_format: str = Field(
         default="jsonl",
@@ -135,10 +135,34 @@ class RunConfig(BaseModel):
     @field_validator("task_type")
     @classmethod
     def validate_task_type(cls, v: str) -> str:
-        allowed = ["segment", "vqa"]
+        allowed = ["segment", "vqa", "cot"]
         if v not in allowed:
             raise ValueError(f"task_type must be one of {allowed}, got {v}")
         return v
+
+
+class CoTConfig(BaseModel):
+    """CoT mode configuration (optional, only used when task_type='cot').
+
+    Reads segment outputs and generates chain-of-thought reasoning
+    for each subtask segment.
+    """
+    segment_run_id: str = Field(
+        default="default",
+        description="run_id of the segment stage whose outputs to read"
+    )
+    frames_per_segment: int = Field(
+        default=8,
+        description="Number of frames to sample from each segment"
+    )
+    target_width: int = Field(
+        default=424,
+        description="Target frame width for VLM input"
+    )
+    target_height: int = Field(
+        default=240,
+        description="Target frame height for VLM input"
+    )
 
 
 class Config(BaseModel):
@@ -149,6 +173,7 @@ class Config(BaseModel):
     worker: WorkerConfig = Field(default_factory=WorkerConfig)
     windowing: WindowingConfig = Field(default_factory=WindowingConfig)
     vqa: VQAConfig = Field(default_factory=VQAConfig)
+    cot: CoTConfig = Field(default_factory=CoTConfig)
     progress: ProgressConfig = Field(default_factory=ProgressConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 

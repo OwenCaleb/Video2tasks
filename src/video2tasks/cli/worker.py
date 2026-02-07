@@ -14,7 +14,7 @@ from ..worker.runner import run_worker
 )
 @click.option(
     "--mode",
-    type=click.Choice(["segment", "vqa"], case_sensitive=False),
+    type=click.Choice(["segment", "vqa", "cot"], case_sensitive=False),
     default=None,
     help="Override run.task_type from config"
 )
@@ -40,6 +40,10 @@ def main(config: Path, mode: str | None) -> None:
         from ..vqa.worker_runner import run_vqa_worker
 
         run_vqa_worker(cfg)
+    elif cfg.run.task_type == "cot":
+        from ..cot.worker_runner import run_cot_worker
+
+        run_cot_worker(cfg)
     else:
         run_worker(cfg)
 

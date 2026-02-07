@@ -95,13 +95,14 @@ def prompt_switch_detection(n_images: int) -> str:
 class Qwen3VLBackend(VLMBackend):
     """Qwen3-VL backend using Transformers."""
     
-    def __init__(self, model_path: str, device_map: str = "balanced"):
+    def __init__(self, model_path: str, device_map: str = "balanced",
+                 target_w: int = 720, target_h: int = 480):
         self.model_path = model_path
         self.device_map = device_map
         self.model = None
         self.processor = None
-        self.target_w = 720
-        self.target_h = 480
+        self.target_w = target_w
+        self.target_h = target_h
     
     @property
     def name(self) -> str:

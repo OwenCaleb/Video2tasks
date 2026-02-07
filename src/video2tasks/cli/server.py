@@ -13,7 +13,7 @@ from video2tasks.server import run_server
 )
 @click.option(
     "--mode",
-    type=click.Choice(["segment", "vqa"], case_sensitive=False),
+    type=click.Choice(["segment", "vqa", "cot"], case_sensitive=False),
     default=None,
     help="Override run.task_type from config"
 )
@@ -39,6 +39,10 @@ def main(config: Path, mode: str | None) -> None:
         from ..vqa.server_app import run_vqa_server
 
         run_vqa_server(cfg)
+    elif cfg.run.task_type == "cot":
+        from ..cot.server_app import run_cot_server
+
+        run_cot_server(cfg)
     else:
         run_server(cfg)
 

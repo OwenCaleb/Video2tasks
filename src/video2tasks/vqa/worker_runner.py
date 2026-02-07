@@ -45,40 +45,25 @@ def decode_b64_to_numpy(b64_str: str) -> Optional[np.ndarray]:
         return None
 
 
-def _split_qas_by_type(
-    qas: List[Dict[str, Any]], expected_types: List[str]
-) -> Dict[str, Dict[str, Any]]:
-    """Split a flat qas list into per-type buckets.
-
-    Each QA must have a 'type' field.  QAs whose type is not in
-    *expected_types* are assigned to the first expected type.
-    """
-    by_type: Dict[str, List[Dict[str, Any]]] = {qt: [] for qt in expected_types}
-    for qa in qas:
-        qt = qa.get("type", "")
-        if qt in by_type:
-            by_type[qt].append(qa)
-        elif expected_types:
-            by_type[expected_types[0]].append(qa)
-    return {qt: {"qas": items} for qt, items in by_type.items() if items}
-
-
 def run_vqa_worker(config: Config) -> None:
     """Run the VQA worker loop.
 
-    Uses a single combined VLM call covering all question types, then
-    splits the returned QAs by their ``type`` field into per-type
-    buckets so the output structure (``{"by_type": {...}}``) stays the
-    same as before.
+    For each job (one frame), the worker iterates over *question_types*
+    independently — one VLM call per type.  Results are collected into
+    ``{"by_type": {"spatial": {"qas": [...]}, ...}}`` and submitted in
+    a single HTTP POST.
     """
     server_url = config.worker.server_url
 
     # ---- Create backend ----
     backend_kwargs: Dict[str, Any] = {}
     if config.worker.backend == "qwen3vl":
+        vqa_cfg = getattr(config, "vqa", None)
         backend_kwargs = {
             "model_path": config.worker.qwen3vl.model_path,
             "device_map": config.worker.qwen3vl.device_map,
+            "target_w": vqa_cfg.target_width if vqa_cfg else 424,
+            "target_h": vqa_cfg.target_height if vqa_cfg else 240,
         }
     elif config.worker.backend == "remote_api":
         backend_kwargs = {
@@ -144,44 +129,47 @@ def run_vqa_worker(config: Config) -> None:
                     else:
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
 
-                # ---- Single combined VLM call ----
+                # ---- Per-type VLM calls ----
                 by_type: Dict[str, Dict[str, Any]] = {}
                 t0 = time.time()
-                raw_result: Any = None
 
-                for attempt in range(MAX_LOCAL_RETRIES):
-                    try:
-                        prompt = registry.build_combined_prompt(question_types, len(images))
-                        raw_result = backend.infer(images, prompt)
+                for qtype in question_types:
+                    type_result: Dict[str, Any] = {}
 
-                        all_qas: List[Dict[str, Any]] = []
-                        if isinstance(raw_result, dict):
-                            if "qas" in raw_result and isinstance(raw_result["qas"], list):
-                                all_qas = raw_result["qas"]
-                            elif "text" in raw_result:
-                                parsed = _parse_vqa_response(raw_result["text"])
-                                all_qas = parsed.get("qas", [])
+                    for attempt in range(MAX_LOCAL_RETRIES):
+                        raw_result: Any = None
+                        try:
+                            prompt = registry.build_single_type_prompt(qtype, len(images))
+                            raw_result = backend.infer(images, prompt)
+
+                            if isinstance(raw_result, dict):
+                                if "qas" in raw_result and isinstance(raw_result["qas"], list):
+                                    type_result = raw_result
+                                elif "text" in raw_result:
+                                    type_result = _parse_vqa_response(raw_result["text"])
+                                else:
+                                    type_result = {}
+                            elif isinstance(raw_result, str):
+                                type_result = _parse_vqa_response(raw_result)
                             else:
-                                all_qas = []
-                        elif isinstance(raw_result, str):
-                            parsed = _parse_vqa_response(raw_result)
-                            all_qas = parsed.get("qas", [])
+                                type_result = {}
+                        except Exception as e:
+                            print(f"[VQA] Inference error ({qtype}): {e}")
+                            type_result = {}
 
-                        if all_qas:
-                            by_type = _split_qas_by_type(all_qas, question_types)
-                            break
-                    except Exception as e:
-                        print(f"[VQA] Inference error: {e}")
+                        if type_result.get("qas"):
+                            break  # success
+                        if attempt < MAX_LOCAL_RETRIES - 1:
+                            print(f"[VQA] {task_id} [{qtype}] empty (attempt {attempt + 1}), retrying...")
 
-                    if attempt < MAX_LOCAL_RETRIES - 1:
-                        print(f"[VQA] {task_id} empty (attempt {attempt + 1}), retrying...")
+                    if type_result.get("qas"):
+                        by_type[qtype] = type_result
+                    else:
+                        _log_parse_failure(task_id, qtype, raw_result)
 
                 elapsed = time.time() - t0
 
                 # ---- Summary ----
-                if not by_type:
-                    _log_parse_failure(task_id, "combined", raw_result)
-
                 total_qas = sum(len(v.get("qas", [])) for v in by_type.values())
                 ok_types = list(by_type.keys())
                 fail_types = [qt for qt in question_types if qt not in by_type]
