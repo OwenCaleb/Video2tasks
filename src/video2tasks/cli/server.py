@@ -3,8 +3,7 @@
 import click
 from pathlib import Path
 from ..config import Config
-from .app import run_server
-
+from video2tasks.server import run_server
 
 @click.command()
 @click.option(

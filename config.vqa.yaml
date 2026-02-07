@@ -2,12 +2,12 @@
 # Copy this file to config.yaml and customize for your setup
 
 datasets:
-  - root: "./frames"  # Path to extracted frame images
-    subset: "demo"     # Subdirectory containing frames or per-sample subfolders
+  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz"  # Path to extracted frame images
+    subset: "frame_retarget"     # Subdirectory containing frames or per-sample subfolders
 
 run:
   base_dir: "./runs"
-  run_id: "vqa_demo"
+  run_id: "vqa"
   task_type: "vqa"
 
 server:
@@ -20,10 +20,10 @@ server:
 
 worker:
   server_url: "http://127.0.0.1:8099"
-  backend: "dummy"  # Options: "dummy", "qwen3vl", "remote_api"
+  backend: "qwen3vl"  # Options: "dummy", "qwen3vl", "remote_api"
 
   qwen3vl:
-    model_path: "/path/to/Qwen3-VL-32B-Instruct"
+    model_path: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/models/qwen/Qwen3-VL-32B-Instruct"
     device_map: "balanced"
 
   remote_api:
