@@ -15,12 +15,6 @@ class DatasetConfig(BaseModel):
     subset: str = Field(..., description="Subset/directory name")
 
 
-class RunConfig(BaseModel):
-    """Run/output configuration."""
-    base_dir: str = Field(default="./runs", description="Base directory for outputs")
-    run_id: str = Field(default="default", description="Run identifier")
-
-
 class ServerConfig(BaseModel):
     """Server configuration."""
     host: str = Field(default="0.0.0.0", description="Server bind host")
@@ -91,6 +85,45 @@ class LoggingConfig(BaseModel):
         if v_upper not in allowed:
             raise ValueError(f"level must be one of {allowed}, got {v}")
         return v_upper
+
+
+class VQAConfig(BaseModel):
+    """VQA mode configuration (optional, only used when task_type='vqa')."""
+    question_types: List[str] = Field(
+        default=["spatial", "attribute", "existence", "count", "manipulation"],
+        description="Question types to ask"
+    )
+    context_frames: int = Field(
+        default=0,
+        description="Number of context frames before center frame"
+    )
+    output_format: str = Field(
+        default="jsonl",
+        description="Output format: jsonl or parquet"
+    )
+
+    @field_validator("output_format")
+    @classmethod
+    def validate_output_format(cls, v: str) -> str:
+        allowed = ["jsonl", "parquet"]
+        if v not in allowed:
+            raise ValueError(f"output_format must be one of {allowed}, got {v}")
+        return v
+
+
+class RunConfig(BaseModel):
+    """Run/output configuration."""
+    base_dir: str = Field(default="./runs", description="Base directory for outputs")
+    run_id: str = Field(default="default", description="Run identifier")
+    task_type: str = Field(default="segment", description="Task type: segment or vqa")
+
+    @field_validator("task_type")
+    @classmethod
+    def validate_task_type(cls, v: str) -> str:
+        allowed = ["segment", "vqa"]
+        if v not in allowed:
+            raise ValueError(f"task_type must be one of {allowed}, got {v}")
+        return v
 
 
 class Config(BaseModel):
