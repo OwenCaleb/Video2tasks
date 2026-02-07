@@ -269,3 +269,16 @@ class VQAPromptRegistry:
             "No markdown, no code fences, no extra text. If unsure, answer 'unknown'."
         )
         return f"{header}\n{instruction}\n\n{template.prompt_template}"
+
+
+def get_default_prompts() -> VQAPromptRegistry:
+    """Get a registry populated with default prompts."""
+    registry = VQAPromptRegistry()
+    for template in _DEFAULT_PROMPTS.values():
+        registry.register(template)
+    return registry
+
+
+def get_default_question_types() -> List[str]:
+    """Get list of default question types."""
+    return list(_DEFAULT_PROMPTS.keys())
