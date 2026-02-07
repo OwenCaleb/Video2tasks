@@ -46,9 +46,6 @@ windows.jsonl
 models/
 checkpoints/
 
-# Config (user-specific)
-config.yaml
-config.yml
 
 # OS
 .DS_Store
