@@ -269,10 +269,3 @@ class VQAPromptRegistry:
             "No markdown, no code fences, no extra text. If unsure, answer 'unknown'."
         )
         return f"{header}\n{instruction}\n\n{template.prompt_template}"
-    parts.append('{')
-    parts.append('  "qas": [')
-    parts.append('    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}')
-    parts.append('  ]')
-    parts.append('}')
-
-    return "\n".join(parts)
