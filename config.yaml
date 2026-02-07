@@ -60,4 +60,6 @@ logging:
 vqa:
   question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
   sample_hz: 1.0
+  target_width: 424
+  target_height: 240
   output_format: "jsonl"  # "jsonl" (default), "parquet" (optional)

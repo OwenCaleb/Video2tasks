@@ -91,11 +91,27 @@ def _discover_frames(frames_dir: str) -> List[str]:
     return sorted(frame_files)
 
 
-def _encode_image_b64(image_path: str) -> str:
-    """Encode image to base64."""
-    import base64
+def _encode_image_b64(
+    image_path: str,
+    target_w: int = 0,
+    target_h: int = 0,
+) -> str:
+    """Encode image to base64, optionally resizing first."""
+    import base64 as _b64
+    from PIL import Image as _Img
+    from io import BytesIO as _Bio
+
+    if target_w > 0 and target_h > 0:
+        img = _Img.open(image_path)
+        if img.size != (target_w, target_h):
+            img = img.resize((target_w, target_h), _Img.LANCZOS)
+        buf = _Bio()
+        fmt = "JPEG" if image_path.lower().endswith((".jpg", ".jpeg")) else "PNG"
+        img.save(buf, format=fmt)
+        return _b64.b64encode(buf.getvalue()).decode("utf-8")
+
     with open(image_path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
+        return _b64.b64encode(f.read()).decode("utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -160,6 +176,8 @@ def create_vqa_app(config: Config) -> FastAPI:
         else ["spatial", "attribute", "existence", "count", "manipulation"]
     )
     sample_hz: float = vqa_cfg.sample_hz if vqa_cfg else 1.0
+    target_w: int = vqa_cfg.target_width if vqa_cfg else 0
+    target_h: int = vqa_cfg.target_height if vqa_cfg else 0
 
     dataset_ctxs = parse_vqa_datasets(config)
 
@@ -348,7 +366,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                         continue
 
                 # Single frame (no context frames)
-                images_b64 = [_encode_image_b64(frame_path)]
+                images_b64 = [_encode_image_b64(frame_path, target_w, target_h)]
 
                 frame_idx = _compute_frame_idx(frame_id, cur_idx, sample_hz)
 
@@ -398,7 +416,7 @@ def create_vqa_app(config: Config) -> FastAPI:
 
                     next_job = {
                         "task_id": ntid,
-                        "images": [_encode_image_b64(np_)],
+                        "images": [_encode_image_b64(np_, target_w, target_h)],
                         "question_types": n_missing,
                         "meta": {
                             "subset": ctx.subset,

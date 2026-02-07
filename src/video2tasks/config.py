@@ -97,6 +97,14 @@ class VQAConfig(BaseModel):
         default=1.0,
         description="Frame sampling interval. frame_idx = numeric_id * sample_hz"
     )
+    target_width: int = Field(
+        default=424,
+        description="Target frame width for VLM input (resize before encoding)"
+    )
+    target_height: int = Field(
+        default=240,
+        description="Target frame height for VLM input (resize before encoding)"
+    )
     output_format: str = Field(
         default="jsonl",
         description="Output format: jsonl or parquet"

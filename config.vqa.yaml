@@ -35,6 +35,8 @@ worker:
 vqa:
   question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
   sample_hz: 100
+  target_width: 424
+  target_height: 240
   output_format: "jsonl"
 
 logging:
