@@ -21,6 +21,29 @@ class VQAPromptTemplate:
 # Default prompt templates for robotics manipulation domain
 _DEFAULT_PROMPTS: Dict[str, VQAPromptTemplate] = {}
 
+# Compact questions for retry/fallback prompt
+_COMPACT_QUESTIONS: Dict[str, List[str]] = {
+    "spatial": [
+        "What is left of the robot gripper?",
+        "What is right of the robot gripper?",
+    ],
+    "attribute": [
+        "What is the color of the most salient object?",
+        "Is any object open or closed?",
+    ],
+    "existence": [
+        "Is there a robot gripper visible?",
+        "Is any object being held?",
+    ],
+    "count": [
+        "How many graspable objects are visible?",
+    ],
+    "manipulation": [
+        "Which objects are graspable?",
+        "What is the gripper state?",
+    ],
+}
+
 
 def _register_default(template: VQAPromptTemplate) -> VQAPromptTemplate:
     """Register a default prompt template."""
@@ -260,3 +283,33 @@ def get_default_prompts() -> VQAPromptRegistry:
 def get_default_question_types() -> List[str]:
     """Get list of default question types."""
     return list(_DEFAULT_PROMPTS.keys())
+
+
+def build_compact_prompt(question_types: List[str], n_images: int = 1) -> str:
+    """Build a compact VQA prompt for retry/fallback.
+
+    This reduces prompt length to improve JSON compliance.
+    """
+    types = question_types or list(_COMPACT_QUESTIONS.keys())
+
+    parts = []
+    parts.append(f"You are analyzing {'an image' if n_images == 1 else f'{n_images} images'} from a robot manipulation scene.")
+    parts.append("Return ONLY JSON with key 'qas'. No extra text.")
+    parts.append("If unsure, answer 'unknown'.")
+    parts.append("")
+    parts.append("Questions:")
+
+    for qtype in types:
+        qs = _COMPACT_QUESTIONS.get(qtype, [])
+        for q in qs:
+            parts.append(f"- [{qtype}] {q}")
+
+    parts.append("")
+    parts.append("JSON format:")
+    parts.append('{')
+    parts.append('  "qas": [')
+    parts.append('    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}')
+    parts.append('  ]')
+    parts.append('}')
+
+    return "\n".join(parts)

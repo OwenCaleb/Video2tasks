@@ -12,7 +12,7 @@ from PIL import Image
 
 from ..config import Config
 from ..vlm import create_backend
-from .prompts import get_default_prompts
+from .prompts import get_default_prompts, build_compact_prompt
 
 MAX_LOCAL_RETRIES = 2
 
@@ -36,8 +36,10 @@ def decode_b64_to_numpy(b64_str: str) -> Optional[np.ndarray]:
         return None
 
 
-def build_vqa_prompt(question_types: List[str], n_images: int = 1) -> str:
+def build_vqa_prompt(question_types: List[str], n_images: int = 1, compact: bool = False) -> str:
     """Build VQA prompt from question types."""
+    if compact:
+        return build_compact_prompt(question_types, n_images)
     registry = get_default_prompts()
     return registry.build_combined_prompt(question_types, n_images)
 
@@ -114,12 +116,12 @@ def run_vqa_worker(config: Config) -> None:
                     else:
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
                 
-                # Build VQA prompt
-                prompt = build_vqa_prompt(question_types, len(images))
                 vlm_json: Dict[str, Any] = {}
                 
                 for attempt in range(MAX_LOCAL_RETRIES):
                     try:
+                        # Build VQA prompt (use compact prompt on retry)
+                        prompt = build_vqa_prompt(question_types, len(images), compact=(attempt > 0))
                         result = backend.infer(images, prompt)
                         
                         # Convert result to VQA format
