@@ -33,7 +33,7 @@ worker:
     headers: {}
 
 vqa:
-  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  question_types: ["spatial"]
   sample_hz: 100
   target_width: 424
   target_height: 240
@@ -41,3 +41,4 @@ vqa:
 
 logging:
   level: "INFO"
+# question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
