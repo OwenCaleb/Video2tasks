@@ -353,6 +353,74 @@ runs/<subset>/<run_id>/vqa/<sample_id>/manipulation.jsonl
 
 ---
 
+## 🧠 CoT 推理模式（可选）
+
+Video2Tasks 也支持 **基于子任务的链式推理（CoT）生成**。
+该模式依赖已有的切分结果，**不会影响**任务切分或 VQA。
+
+### 使用场景
+- 需要为每个子任务生成分步推理描述
+- 已完成 `segment` 阶段并产出 `segments.json`
+
+### 输入
+
+CoT 会读取分割产物：
+
+```
+runs/<subset>/<segment_run_id>/samples/<sample_id>/segments.json
+```
+
+并从原视频中抽取帧进行推理。
+
+### 最小配置
+
+```yaml
+run:
+  task_type: "cot"
+  run_id: "cot_run_1"
+
+cot:
+  segment_run_id: "default"
+  frames_per_segment: 8
+  target_width: 424
+  target_height: 240
+```
+
+### 启动方式
+
+```bash
+# 方式 A：在配置中设置 run.task_type: "cot"
+v2t-server --config config.yaml
+v2t-worker --config config.yaml
+
+# 方式 B：CLI 直接覆盖
+v2t-server --config config.yaml --mode cot
+v2t-worker --config config.yaml --mode cot
+```
+
+### 输出（按 segment 汇总）
+
+```json
+{
+  "sample_id": "demo_001",
+  "segments": [
+    {
+      "seg_id": 0,
+      "instruction": "pick up red toy car",
+      "start_frame": 0,
+      "end_frame": 300,
+      "cot": "The red toy car is on the right side of the table..."
+    }
+  ]
+}
+```
+
+输出路径：
+
+```
+runs/<subset>/<run_id>/cot/<sample_id>/cot_results.json
+```
+
 ---
 
 ## ⚙️ 配置说明
@@ -367,6 +435,7 @@ runs/<subset>/<run_id>/vqa/<sample_id>/manipulation.jsonl
 | `worker` | VLM 后端选择和模型路径 |
 | `windowing` | 帧采样参数 |
 | `vqa` | VQA 题型、采样频率（sample_hz）、输出格式 |
+| `cot` | CoT 子任务推理配置 |
 
 ---
 

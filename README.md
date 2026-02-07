@@ -353,6 +353,74 @@ runs/<subset>/<run_id>/vqa/<sample_id>/manipulation.jsonl
 
 ---
 
+## 🧠 CoT Reasoning Mode (Optional)
+
+Video2Tasks can also generate **chain-of-thought style reasoning** for each subtask segment.
+This mode depends on existing segmentation results and **does not affect** segmentation or VQA.
+
+### When to Use
+- You want step-by-step subtask reasoning for instruction-following or planning
+- You already have segment outputs from a previous `segment` run
+
+### Inputs
+
+CoT reads segment outputs from:
+
+```
+runs/<subset>/<segment_run_id>/samples/<sample_id>/segments.json
+```
+
+and samples frames from the original videos.
+
+### Minimal Config
+
+```yaml
+run:
+  task_type: "cot"
+  run_id: "cot_run_1"
+
+cot:
+  segment_run_id: "default"
+  frames_per_segment: 8
+  target_width: 424
+  target_height: 240
+```
+
+### Running CoT
+
+```bash
+# Option A: set run.task_type: "cot" in config
+v2t-server --config config.yaml
+v2t-worker --config config.yaml
+
+# Option B: override at CLI
+v2t-server --config config.yaml --mode cot
+v2t-worker --config config.yaml --mode cot
+```
+
+### Output (per-segment JSON)
+
+```json
+{
+  "sample_id": "demo_001",
+  "segments": [
+    {
+      "seg_id": 0,
+      "instruction": "pick up red toy car",
+      "start_frame": 0,
+      "end_frame": 300,
+      "cot": "The red toy car is on the right side of the table..."
+    }
+  ]
+}
+```
+
+Output path:
+
+```
+runs/<subset>/<run_id>/cot/<sample_id>/cot_results.json
+```
+
 ---
 
 ## ⚙️ Configuration
@@ -367,6 +435,7 @@ See [`config.example.yaml`](config.example.yaml) for all available options:
 | `worker` | VLM backend selection and model paths |
 | `windowing` | Frame sampling parameters |
 | `vqa` | VQA question types, sample_hz, output format |
+| `cot` | CoT segment reasoning settings |
 
 ---
 
