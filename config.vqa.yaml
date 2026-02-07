@@ -7,7 +7,7 @@ datasets:
 
 run:
   base_dir: "./runs"
-  run_id: "vqa"
+  run_id: "default"
   task_type: "vqa"
 
 server:
