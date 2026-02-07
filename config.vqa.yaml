@@ -34,6 +34,10 @@ worker:
 
 vqa:
   question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  sample_hz: 100
+  source_fps: 10
+  total_frames: 0
+  frame_index_offset: 0
   context_frames: 0
   output_format: "jsonl"
 

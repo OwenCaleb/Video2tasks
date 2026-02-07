@@ -124,14 +124,16 @@ def run_vqa_worker(config: Config) -> None:
                         
                         # Convert result to VQA format
                         if isinstance(result, dict):
-                            if "qas" in result:
+                            if not result:
+                                vlm_json = {}
+                            elif "qas" in result and isinstance(result.get("qas"), list):
                                 vlm_json = result
                             elif "text" in result:
                                 # Parse text response
                                 vlm_json = _parse_vqa_response(result.get("text", ""))
                             else:
-                                # Try to use as-is
-                                vlm_json = {"qas": [], "raw": result}
+                                print(f"[VQA] {task_id} Missing 'qas' in backend output, triggering retry")
+                                vlm_json = {}
                         elif isinstance(result, str):
                             vlm_json = _parse_vqa_response(result)
                         else:

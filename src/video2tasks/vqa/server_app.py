@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import uvicorn
 
-from ..config import Config
+from ..config import Config, VQAConfig
 
 
 class VQASubmitModel(BaseModel):
@@ -139,6 +139,41 @@ def _load_completed_frames(output_dir: str) -> set:
     return completed
 
 
+def _parse_numeric_frame_id(frame_id: str) -> Optional[int]:
+    import re
+
+    match = re.search(r"(\d+)", frame_id)
+    return int(match.group(1)) if match else None
+
+
+def _compute_frame_idx(
+    frame_id: str,
+    fallback_idx: int,
+    vqa_cfg: Optional[VQAConfig],
+) -> int:
+    numeric_id = _parse_numeric_frame_id(frame_id)
+    if numeric_id is None:
+        return fallback_idx
+
+    if vqa_cfg and vqa_cfg.sample_hz > 0 and vqa_cfg.source_fps > 0:
+        idx = int(round(numeric_id * vqa_cfg.source_fps / vqa_cfg.sample_hz))
+    else:
+        idx = numeric_id
+
+    idx += int(vqa_cfg.frame_index_offset) if vqa_cfg else 0
+
+    if vqa_cfg and vqa_cfg.total_frames > 0:
+        idx = min(idx, vqa_cfg.total_frames - 1)
+
+    return max(0, idx)
+
+
+def _compute_timestamp_sec(frame_idx: int, vqa_cfg: Optional[VQAConfig]) -> Optional[float]:
+    if vqa_cfg and vqa_cfg.source_fps > 0:
+        return float(frame_idx) / float(vqa_cfg.source_fps)
+    return None
+
+
 def create_vqa_app(config: Config) -> FastAPI:
     """Create VQA FastAPI application."""
     app = FastAPI(title="Video2Tasks VQA Server")
@@ -231,6 +266,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                 record = {
                     "frame_id": frame_id,
                     "frame_idx": meta.get("frame_idx"),
+                    "timestamp_sec": meta.get("timestamp_sec"),
                     "qas": res.vlm_json.get("qas", []),
                 }
                 with open(results_path, "a", encoding="utf-8") as f:
@@ -357,10 +393,8 @@ def create_vqa_app(config: Config) -> FastAPI:
                 # Add center frame
                 images_b64.append(_encode_image_b64(frame_path))
                 
-                # Parse frame index
-                import re
-                match = re.search(r'(\d+)', frame_id)
-                frame_idx = int(match.group(1)) if match else cur_idx
+                frame_idx = _compute_frame_idx(frame_id, cur_idx, vqa_cfg)
+                timestamp_sec = _compute_timestamp_sec(frame_idx, vqa_cfg)
                 
                 job = {
                     "task_id": task_id,
@@ -371,6 +405,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                         "sample_id": ctx.sample_id,
                         "frame_id": frame_id,
                         "frame_idx": frame_idx,
+                        "timestamp_sec": timestamp_sec,
                         "output_dir": ctx.output_dir,
                         "context_frame_ids": context_ids,
                     }
@@ -413,8 +448,8 @@ def create_vqa_app(config: Config) -> FastAPI:
                             next_context_ids.append(Path(frame_files[j]).stem)
                     next_images.append(_encode_image_b64(next_path))
                     
-                    match = re.search(r'(\d+)', next_frame_id)
-                    next_frame_idx = int(match.group(1)) if match else next_idx
+                    next_frame_idx = _compute_frame_idx(next_frame_id, next_idx, vqa_cfg)
+                    next_timestamp_sec = _compute_timestamp_sec(next_frame_idx, vqa_cfg)
                     
                     next_job = {
                         "task_id": next_task_id,
@@ -425,6 +460,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                             "sample_id": ctx.sample_id,
                             "frame_id": next_frame_id,
                             "frame_idx": next_frame_idx,
+                            "timestamp_sec": next_timestamp_sec,
                             "output_dir": ctx.output_dir,
                             "context_frame_ids": next_context_ids,
                         }
@@ -468,15 +504,4 @@ def run_vqa_server(config: Config) -> None:
         host=config.server.host,
         port=config.server.port,
         log_level=config.logging.level.lower(),
-    )
-
-
-def run_vqa_server(config: Config) -> None:
-    """Run the VQA server."""
-    app = create_vqa_app(config)
-    uvicorn.run(
-        app,
-        host=config.server.host,
-        port=config.server.port,
-        log_level=config.logging.level.lower()
     )
