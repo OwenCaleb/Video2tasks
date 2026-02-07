@@ -273,6 +273,90 @@ v2t-worker --config config.yaml
 
 ---
 
+## 🧩 Frame-Level VQA Mode (Optional)
+
+Video2Tasks also supports **frame-level VQA auto-annotation** for datasets of extracted frame images.
+This mode is opt-in and **does not affect** the default segmentation workflow.
+
+### When to Use
+- You already have per-frame images (PNG/JPG) extracted from videos
+- You need structured VQA labels for robotics manipulation tasks
+
+### Dataset Layout
+
+```
+frames/
+└── demo/
+    ├── frame_000001.png
+    ├── frame_000002.png
+    └── ...
+
+# Or multi-sample layout
+frames/
+└── demo/
+    ├── sample_01/
+    │   ├── 000001.jpg
+    │   └── ...
+    └── sample_02/
+        └── ...
+```
+
+### Minimal Config
+
+Use the example file [`config.vqa.example.yaml`](config.vqa.example.yaml) and set:
+
+```yaml
+run:
+  task_type: "vqa"
+
+vqa:
+  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  context_frames: 0
+  output_format: "jsonl"
+```
+
+### Running VQA
+
+```bash
+# Option A: set run.task_type: "vqa" in config
+v2t-server --config config.vqa.example.yaml
+v2t-worker --config config.vqa.example.yaml
+
+# Option B: override at CLI
+v2t-server --config config.example.yaml --mode vqa
+v2t-worker --config config.example.yaml --mode vqa
+```
+
+Optional parquet support:
+
+```bash
+pip install -e ".[parquet]"
+```
+
+### Output (JSONL)
+
+Each frame produces one JSONL record with structured QA pairs:
+
+```json
+{"frame_id": "frame_000001", "frame_idx": 1, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
+```
+
+Output path:
+
+```
+runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results.jsonl
+```
+
+If `vqa.output_format: "parquet"` and `pyarrow` is installed, a parquet dataset directory is also created:
+
+```
+runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results_parquet/
+```
+
+---
+
+---
+
 ## ⚙️ Configuration
 
 See [`config.example.yaml`](config.example.yaml) for all available options:
@@ -284,6 +368,7 @@ See [`config.example.yaml`](config.example.yaml) for all available options:
 | `server` | Host, port, and queue settings |
 | `worker` | VLM backend selection and model paths |
 | `windowing` | Frame sampling parameters |
+| `vqa` | VQA question types, context frames, output format |
 
 ---
 
@@ -343,6 +428,15 @@ worker:
 }
 ```
 
+**VQA Response (frame-level):**
+```json
+{
+  "qas": [
+    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}
+  ]
+}
+```
+
 </details>
 
 ### Custom Backend
@@ -370,6 +464,9 @@ video2tasks/
 │   ├── 📂 server/             # FastAPI server
 │   │   ├── app.py
 │   │   └── windowing.py
+│   ├── 📂 vqa/                # Frame-level VQA mode
+│   │   ├── server_app.py
+│   │   └── worker_runner.py
 │   ├── 📂 worker/             # Worker implementation
 │   │   └── runner.py
 │   ├── 📂 vlm/                # VLM backends
@@ -380,6 +477,7 @@ video2tasks/
 │       ├── server.py
 │       └── worker.py
 ├── 📄 config.example.yaml
+├── 📄 config.vqa.example.yaml
 ├── 📄 pyproject.toml
 ├── 📄 README.md
 ├── 📄 README_CN.md

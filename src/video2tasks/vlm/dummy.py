@@ -13,9 +13,25 @@ class DummyBackend(VLMBackend):
         return "dummy"
     
     def infer(self, images: List[np.ndarray], prompt: str) -> Dict[str, Any]:
-        """Return mock segmentation results."""
+        """Return mock results for segmentation or VQA prompts."""
         n = len(images)
-        
+
+        if "VQA" in prompt or "\"qas\"" in prompt:
+            return {
+                "qas": [
+                    {
+                        "type": "existence",
+                        "question": "Is there a robot gripper visible?",
+                        "answer": "unknown (dummy backend)",
+                    },
+                    {
+                        "type": "count",
+                        "question": "How many graspable objects are visible?",
+                        "answer": "0 (dummy backend)",
+                    },
+                ]
+            }
+
         # Simple heuristic: pretend to find a switch in the middle
         if n > 8:
             transitions = [n // 2]
@@ -23,9 +39,9 @@ class DummyBackend(VLMBackend):
         else:
             transitions = []
             instructions = ["Single task"]
-        
+
         return {
             "thought": f"Dummy analysis of {n} frames. No actual inference performed.",
             "transitions": transitions,
-            "instructions": instructions
+            "instructions": instructions,
         }

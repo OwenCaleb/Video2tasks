@@ -1,0 +1,41 @@
+# Video2Tasks VQA Example Configuration
+# Copy this file to config.yaml and customize for your setup
+
+datasets:
+  - root: "./frames"  # Path to extracted frame images
+    subset: "demo"     # Subdirectory containing frames or per-sample subfolders
+
+run:
+  base_dir: "./runs"
+  run_id: "vqa_demo"
+  task_type: "vqa"
+
+server:
+  host: "0.0.0.0"
+  port: 8099
+  max_queue: 32
+  inflight_timeout_sec: 300.0
+  max_retries_per_job: 5
+  auto_exit_after_all_done: false
+
+worker:
+  server_url: "http://127.0.0.1:8099"
+  backend: "dummy"  # Options: "dummy", "qwen3vl", "remote_api"
+
+  qwen3vl:
+    model_path: "/path/to/Qwen3-VL-32B-Instruct"
+    device_map: "balanced"
+
+  remote_api:
+    api_url: "http://127.0.0.1:8080/infer"
+    api_key: ""
+    timeout_sec: 60.0
+    headers: {}
+
+vqa:
+  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  context_frames: 0
+  output_format: "jsonl"
+
+logging:
+  level: "INFO"

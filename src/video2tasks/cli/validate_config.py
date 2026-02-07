@@ -22,9 +22,13 @@ def main(config: Path) -> None:
         for ds in cfg.datasets:
             click.echo(f"    - {ds.subset}: {ds.root}")
         click.echo(f"  Run base: {cfg.run.base_dir}")
+        click.echo(f"  Task type: {cfg.run.task_type}")
         click.echo(f"  Server: {cfg.server.host}:{cfg.server.port}")
         click.echo(f"  Worker backend: {cfg.worker.backend}")
         click.echo(f"  Windowing: {cfg.windowing.frames_per_window} frames per window")
+        if cfg.run.task_type == "vqa":
+            click.echo(f"  VQA question types: {cfg.vqa.question_types}")
+            click.echo(f"  VQA context frames: {cfg.vqa.context_frames}")
         sys.exit(0)
     except Exception as e:
         click.echo(f"Configuration invalid: {e}", err=True)

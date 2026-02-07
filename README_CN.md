@@ -273,6 +273,90 @@ v2t-worker --config config.yaml
 
 ---
 
+## 🧩 帧级 VQA 模式（可选）
+
+Video2Tasks 也支持 **帧级 VQA 自动标注**，面向已抽帧的图像数据。
+该模式为显式开启，**不会影响**默认的任务切分流程。
+
+### 使用场景
+- 已有视频抽帧后的 PNG/JPG
+- 需要面向机器人操作的结构化 VQA 标签
+
+### 数据目录结构
+
+```
+frames/
+└── demo/
+    ├── frame_000001.png
+    ├── frame_000002.png
+    └── ...
+
+# 或多样本结构
+frames/
+└── demo/
+    ├── sample_01/
+    │   ├── 000001.jpg
+    │   └── ...
+    └── sample_02/
+        └── ...
+```
+
+### 最小配置
+
+参考示例配置 [`config.vqa.example.yaml`](config.vqa.example.yaml)：
+
+```yaml
+run:
+  task_type: "vqa"
+
+vqa:
+  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  context_frames: 0
+  output_format: "jsonl"
+```
+
+### 启动方式
+
+```bash
+# 方式 A：在配置中设置 run.task_type: "vqa"
+v2t-server --config config.vqa.example.yaml
+v2t-worker --config config.vqa.example.yaml
+
+# 方式 B：CLI 直接覆盖
+v2t-server --config config.example.yaml --mode vqa
+v2t-worker --config config.example.yaml --mode vqa
+```
+
+可选 parquet 支持：
+
+```bash
+pip install -e ".[parquet]"
+```
+
+### 输出（JSONL）
+
+每个帧对应一条 JSONL 记录：
+
+```json
+{"frame_id": "frame_000001", "frame_idx": 1, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
+```
+
+输出路径：
+
+```
+runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results.jsonl
+```
+
+当 `vqa.output_format: "parquet"` 且安装了 `pyarrow` 时，会额外生成 parquet 数据集目录：
+
+```
+runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results_parquet/
+```
+
+---
+
+---
+
 ## ⚙️ 配置说明
 
 查看 [`config.example.yaml`](config.example.yaml) 了解所有可用选项：
@@ -284,6 +368,7 @@ v2t-worker --config config.yaml
 | `server` | 主机、端口和队列设置 |
 | `worker` | VLM 后端选择和模型路径 |
 | `windowing` | 帧采样参数 |
+| `vqa` | VQA 题型、上下文帧、输出格式 |
 
 ---
 
@@ -354,6 +439,15 @@ worker:
 }
 ```
 
+**VQA 响应格式（帧级）：**
+```json
+{
+  "qas": [
+    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}
+  ]
+}
+```
+
 </details>
 
 ### 自定义后端
@@ -381,6 +475,9 @@ video2tasks/
 │   ├── 📂 server/             # FastAPI 服务端
 │   │   ├── app.py
 │   │   └── windowing.py
+│   ├── 📂 vqa/                # 帧级 VQA 模式
+│   │   ├── server_app.py
+│   │   └── worker_runner.py
 │   ├── 📂 worker/             # Worker 实现
 │   │   └── runner.py
 │   ├── 📂 vlm/                # VLM 后端
@@ -391,6 +488,7 @@ video2tasks/
 │       ├── server.py
 │       └── worker.py
 ├── 📄 config.example.yaml
+├── 📄 config.vqa.example.yaml
 ├── 📄 pyproject.toml
 ├── 📄 README.md
 ├── 📄 README_CN.md

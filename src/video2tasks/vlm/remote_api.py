@@ -86,6 +86,8 @@ class RemoteAPIBackend(VLMBackend):
         if isinstance(data, dict):
             if "transitions" in data or "instructions" in data:
                 return data
+            if "qas" in data and isinstance(data["qas"], list):
+                return data
             if "vlm_json" in data and isinstance(data["vlm_json"], dict):
                 return data["vlm_json"]
             if "text" in data and isinstance(data["text"], str):

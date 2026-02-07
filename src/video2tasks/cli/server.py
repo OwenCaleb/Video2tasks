@@ -12,7 +12,13 @@ from .app import run_server
     type=click.Path(exists=True, path_type=Path),
     help="Path to configuration file"
 )
-def main(config: Path) -> None:
+@click.option(
+    "--mode",
+    type=click.Choice(["segment", "vqa"], case_sensitive=False),
+    default=None,
+    help="Override run.task_type from config"
+)
+def main(config: Path, mode: str | None) -> None:
     """Start the Video2Tasks server."""
     if config:
         cfg = Config.from_yaml(config)
@@ -26,8 +32,16 @@ def main(config: Path) -> None:
                 "No configuration file specified and config.yaml not found.\n"
                 "Use --config to specify a config file or copy config.example.yaml to config.yaml"
             )
-    
-    run_server(cfg)
+
+    if mode:
+        cfg.run.task_type = mode.lower()
+
+    if cfg.run.task_type == "vqa":
+        from ..vqa.server_app import run_vqa_server
+
+        run_vqa_server(cfg)
+    else:
+        run_server(cfg)
 
 
 if __name__ == "__main__":

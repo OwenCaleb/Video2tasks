@@ -2,7 +2,7 @@
 
 __version__ = "0.1.0"
 
-from .config import Config, DatasetConfig, RunConfig, ServerConfig, WorkerConfig
+from .config import Config, DatasetConfig, RunConfig, ServerConfig, WorkerConfig, VQAConfig
 
 __all__ = [
     "Config",
@@ -10,4 +10,5 @@ __all__ = [
     "RunConfig",
     "ServerConfig",
     "WorkerConfig",
+    "VQAConfig",
 ]

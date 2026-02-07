@@ -11,6 +11,7 @@ datasets:
 run:
   base_dir: "./runs"  # Base directory for all outputs
   run_id: "default"    # Run identifier (creates subdirectory)
+  task_type: "segment"  # "segment" (default) or "vqa"
 
 # Server configuration
 server:
@@ -54,3 +55,9 @@ progress:
 # Logging
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+
+# VQA configuration (only used when run.task_type: "vqa")
+vqa:
+  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  context_frames: 0
+  output_format: "jsonl"  # "jsonl" (default), "parquet" (optional)

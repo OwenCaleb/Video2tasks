@@ -133,6 +133,7 @@ class Config(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
     worker: WorkerConfig = Field(default_factory=WorkerConfig)
     windowing: WindowingConfig = Field(default_factory=WindowingConfig)
+    vqa: VQAConfig = Field(default_factory=VQAConfig)
     progress: ProgressConfig = Field(default_factory=ProgressConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 

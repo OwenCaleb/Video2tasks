@@ -6,6 +6,7 @@ import time
 import threading
 from typing import Dict, List, Any, Optional
 from pathlib import Path
+import uuid
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
@@ -112,6 +113,11 @@ def _vqa_results_path(output_dir: str) -> str:
     return str(Path(output_dir) / "vqa_results.jsonl")
 
 
+def _vqa_results_parquet_path(output_dir: str) -> str:
+    """Get path to VQA results parquet dataset directory."""
+    return str(Path(output_dir) / "vqa_results_parquet")
+
+
 def _done_marker_path(output_dir: str) -> str:
     """Get path to done marker."""
     return str(Path(output_dir) / ".DONE")
@@ -154,6 +160,20 @@ def create_vqa_app(config: Config) -> FastAPI:
     # Per-sample locks for thread-safe writes
     _sample_locks: Dict[str, threading.Lock] = {}
     _sample_locks_lock = threading.Lock()
+
+    # Optional parquet output
+    _parquet_enabled = config.vqa.output_format == "parquet"
+    _parquet_available = False
+
+    if _parquet_enabled:
+        try:
+            import pyarrow  # noqa: F401
+            import pyarrow.parquet as pq  # noqa: F401
+            _parquet_available = True
+        except Exception:
+            print("[VQA] Parquet output requested but pyarrow is not installed. Falling back to jsonl only.")
+            _parquet_available = False
+
     
     def get_sample_lock(sample_key: str) -> threading.Lock:
         with _sample_locks_lock:
@@ -215,6 +235,9 @@ def create_vqa_app(config: Config) -> FastAPI:
                 }
                 with open(results_path, "a", encoding="utf-8") as f:
                     f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+                if _parquet_enabled and _parquet_available:
+                    _write_parquet_record(output_dir, record)
         
         return {"status": "received"}
     
@@ -420,6 +443,32 @@ def create_vqa_app(config: Config) -> FastAPI:
     producer_thread.start()
     
     return app
+
+
+def _write_parquet_record(output_dir: str, record: Dict[str, Any]) -> None:
+    """Append a VQA record to a parquet dataset directory if pyarrow is available."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    parquet_dir = Path(_vqa_results_parquet_path(output_dir))
+    parquet_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build table from single record
+    table = pa.Table.from_pylist([record])
+
+    file_name = f"part-{uuid.uuid4().hex}.parquet"
+    pq.write_table(table, parquet_dir / file_name)
+
+
+def run_vqa_server(config: Config) -> None:
+    """Run the VQA server with given configuration."""
+    app = create_vqa_app(config)
+    uvicorn.run(
+        app,
+        host=config.server.host,
+        port=config.server.port,
+        log_level=config.logging.level.lower(),
+    )
 
 
 def run_vqa_server(config: Config) -> None:
