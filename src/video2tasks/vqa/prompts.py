@@ -219,6 +219,8 @@ class VQAPromptRegistry:
         parts = []
         parts.append(f"You are analyzing {'an image' if n_images == 1 else f'{n_images} images'} from a robot manipulation scenario.")
         parts.append("Answer the following VQA questions about the image(s).")
+        parts.append("IMPORTANT: Return ONLY a single JSON object with key 'qas'.")
+        parts.append("Do NOT add markdown/code fences or extra text. If unsure, answer 'unknown'.")
         parts.append("")
         
         for qtype in question_types:
@@ -233,6 +235,14 @@ class VQAPromptRegistry:
         parts.append('  "qas": [')
         parts.append('    {"type": "...", "question": "...", "answer": "..."},')
         parts.append('    ...')
+        parts.append('  ]')
+        parts.append('}')
+        parts.append("")
+        parts.append("Example (format only, do not copy content):")
+        parts.append('{')
+        parts.append('  "qas": [')
+        parts.append('    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"},')
+        parts.append('    {"type": "count", "question": "How many graspable objects are visible?", "answer": "2"}')
         parts.append('  ]')
         parts.append('}')
         
