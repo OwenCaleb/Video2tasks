@@ -18,7 +18,6 @@ class VQAResult(BaseModel):
     """VQA result for a single frame."""
     frame_id: str = Field(..., description="Frame identifier (filename or index)")
     frame_idx: Optional[int] = Field(None, description="Frame index if applicable")
-    timestamp_sec: Optional[float] = Field(None, description="Timestamp in seconds if applicable")
     qas: List[VQAQuestion] = Field(default_factory=list, description="List of QA pairs")
     raw_model_output: Optional[str] = Field(None, description="Raw model output for debugging")
 

@@ -311,7 +311,7 @@ run:
 
 vqa:
   question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
-  context_frames: 0
+  sample_hz: 100
   output_format: "jsonl"
 ```
 
@@ -333,24 +333,22 @@ Optional parquet support:
 pip install -e ".[parquet]"
 ```
 
-### Output (JSONL)
+### Output (per-type JSONL)
 
-Each frame produces one JSONL record with structured QA pairs:
+Each question type produces its own JSONL file, one line per frame:
 
 ```json
-{"frame_id": "frame_000001", "frame_idx": 1, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
 ```
 
-Output path:
+Output path (5 types → 5 files per sample):
 
 ```
-runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results.jsonl
-```
-
-If `vqa.output_format: "parquet"` and `pyarrow` is installed, a parquet dataset directory is also created:
-
-```
-runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results_parquet/
+runs/<subset>/<run_id>/vqa/<sample_id>/spatial.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/attribute.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/existence.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/count.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/manipulation.jsonl
 ```
 
 ---
@@ -368,7 +366,7 @@ See [`config.example.yaml`](config.example.yaml) for all available options:
 | `server` | Host, port, and queue settings |
 | `worker` | VLM backend selection and model paths |
 | `windowing` | Frame sampling parameters |
-| `vqa` | VQA question types, context frames, output format |
+| `vqa` | VQA question types, sample_hz, output format |
 
 ---
 

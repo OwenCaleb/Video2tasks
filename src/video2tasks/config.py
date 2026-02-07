@@ -94,23 +94,8 @@ class VQAConfig(BaseModel):
         description="Question types to ask"
     )
     sample_hz: float = Field(
-        default=0.0,
-        description="Frame sampling frequency (Hz). Set >0 to derive original frame index"
-    )
-    source_fps: float = Field(
-        default=0.0,
-        description="Original video FPS. Used with sample_hz to compute frame_idx/timestamp"
-    )
-    total_frames: int = Field(
-        default=0,
-        description="Total frames in original video (optional, for clipping)")
-    frame_index_offset: int = Field(
-        default=0,
-        description="Offset added to computed frame_idx (default 0)"
-    )
-    context_frames: int = Field(
-        default=0,
-        description="Number of context frames before center frame"
+        default=1.0,
+        description="Frame sampling interval. frame_idx = numeric_id * sample_hz"
     )
     output_format: str = Field(
         default="jsonl",
@@ -125,18 +110,11 @@ class VQAConfig(BaseModel):
             raise ValueError(f"output_format must be one of {allowed}, got {v}")
         return v
 
-    @field_validator("sample_hz", "source_fps")
+    @field_validator("sample_hz")
     @classmethod
-    def validate_non_negative_float(cls, v: float) -> float:
-        if v < 0:
-            raise ValueError("sample_hz/source_fps must be >= 0")
-        return v
-
-    @field_validator("total_frames", "frame_index_offset")
-    @classmethod
-    def validate_non_negative_int(cls, v: int) -> int:
-        if v < 0:
-            raise ValueError("total_frames/frame_index_offset must be >= 0")
+    def validate_positive_float(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("sample_hz must be > 0")
         return v
 
 

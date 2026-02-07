@@ -70,7 +70,6 @@ class VQARunner:
         frame_id: str,
         frame_idx: Optional[int] = None,
         question_types: Optional[List[str]] = None,
-        timestamp_sec: Optional[float] = None
     ) -> VQAResult:
         """Run VQA inference on images.
         
@@ -79,7 +78,6 @@ class VQARunner:
             frame_id: Frame identifier
             frame_idx: Optional frame index
             question_types: Question types to ask (uses default if None)
-            timestamp_sec: Optional timestamp in seconds
             
         Returns:
             VQAResult with QA pairs
@@ -130,7 +128,6 @@ class VQARunner:
         return VQAResult(
             frame_id=frame_id,
             frame_idx=frame_idx,
-            timestamp_sec=timestamp_sec,
             qas=qas,
             raw_model_output=raw_output if raw_output else None
         )

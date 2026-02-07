@@ -28,7 +28,7 @@ def main(config: Path) -> None:
         click.echo(f"  Windowing: {cfg.windowing.frames_per_window} frames per window")
         if cfg.run.task_type == "vqa":
             click.echo(f"  VQA question types: {cfg.vqa.question_types}")
-            click.echo(f"  VQA context frames: {cfg.vqa.context_frames}")
+            click.echo(f"  VQA sample_hz: {cfg.vqa.sample_hz}")
         sys.exit(0)
     except Exception as e:
         click.echo(f"Configuration invalid: {e}", err=True)

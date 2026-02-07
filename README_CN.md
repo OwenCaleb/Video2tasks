@@ -311,7 +311,7 @@ run:
 
 vqa:
   question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
-  context_frames: 0
+  sample_hz: 100
   output_format: "jsonl"
 ```
 
@@ -333,24 +333,22 @@ v2t-worker --config config.example.yaml --mode vqa
 pip install -e ".[parquet]"
 ```
 
-### 输出（JSONL）
+### 输出（per-type JSONL）
 
-每个帧对应一条 JSONL 记录：
+每种题型生成独立的 JSONL 文件，每行对应一帧：
 
 ```json
-{"frame_id": "frame_000001", "frame_idx": 1, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
 ```
 
-输出路径：
+输出路径（5 种题型 → 5 个文件）：
 
 ```
-runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results.jsonl
-```
-
-当 `vqa.output_format: "parquet"` 且安装了 `pyarrow` 时，会额外生成 parquet 数据集目录：
-
-```
-runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results_parquet/
+runs/<subset>/<run_id>/vqa/<sample_id>/spatial.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/attribute.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/existence.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/count.jsonl
+runs/<subset>/<run_id>/vqa/<sample_id>/manipulation.jsonl
 ```
 
 ---
@@ -368,7 +366,7 @@ runs/<subset>/<run_id>/vqa/<sample_id>/vqa_results_parquet/
 | `server` | 主机、端口和队列设置 |
 | `worker` | VLM 后端选择和模型路径 |
 | `windowing` | 帧采样参数 |
-| `vqa` | VQA 题型、上下文帧、输出格式 |
+| `vqa` | VQA 题型、采样频率（sample_hz）、输出格式 |
 
 ---
 
