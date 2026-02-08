@@ -71,3 +71,7 @@ htmlcov/
 tmp/
 temp/
 *.tmp
+
+logs/
+
+pids/
