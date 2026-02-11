@@ -168,7 +168,7 @@ class Qwen3VLBackend(VLMBackend):
         
         # Generate
         with torch.no_grad():
-            output_ids = self.model.generate(**inputs, max_new_tokens=1024)
+            output_ids = self.model.generate(**inputs, max_new_tokens=2048)
         
         # Decode
         generated_ids = [
@@ -181,9 +181,15 @@ class Qwen3VLBackend(VLMBackend):
             skip_special_tokens=True
         )[0]
         
-        # Extract JSON (return empty dict on parse failure)
+        # Debug: show raw output length
+        print(f"[Qwen3VL] raw output ({len(output_text)} chars): {output_text[:200]}...")
+        
+        # Try to extract JSON; fall back to returning raw text
         result = extract_json(output_text)
-        return result
+        if result:
+            return result
+        # Preserve raw text so the caller can still attempt parsing / debugging
+        return {"text": output_text}
     
     def cleanup(self) -> None:
         """Cleanup model resources."""

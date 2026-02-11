@@ -16,14 +16,19 @@ class DummyBackend(VLMBackend):
         """Return mock results for segmentation or VQA prompts."""
         n = len(images)
 
-        if "VQA" in prompt or "\"qas\"" in prompt:
+        if "\"qas\"" in prompt or "qas" in prompt:
+            # Detect [Object] expansion prompts
+            if "[Object]" in prompt:
+                return {
+                    "qas": [
+                        {"type": "spatial", "question": "What objects are to the LEFT of brown basket?", "answer": "kiwi, avocado (dummy)"},
+                        {"type": "spatial", "question": "What objects are to the LEFT of red car?", "answer": "brown basket (dummy)"},
+                        {"type": "spatial", "question": "What objects are to the RIGHT of brown basket?", "answer": "red car (dummy)"},
+                        {"type": "spatial", "question": "What objects are to the RIGHT of red car?", "answer": "gold car (dummy)"},
+                    ]
+                }
             return {
                 "qas": [
-                    {
-                        "type": "existence",
-                        "question": "Is there a robot gripper visible?",
-                        "answer": "unknown (dummy backend)",
-                    },
                     {
                         "type": "count",
                         "question": "How many graspable objects are visible?",
