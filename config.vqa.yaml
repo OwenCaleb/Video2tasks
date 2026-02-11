@@ -3,7 +3,7 @@
 
 datasets:
   - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz_old"  # Path to extracted frame images
-    subset: "frame_retarget"     # Subdirectory containing frames or per-sample subfolders
+    subset: "frame_retarget_head"     # Subdirectory containing frames or per-sample subfolders
 
 run:
   base_dir: "./runs"
@@ -35,11 +35,11 @@ worker:
 vqa:
   question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
   questions_per_type:
-    spatial: 7
-    attribute: 5
-    existence: 5
-    count: 4
-    manipulation: 5
+    spatial: 3
+    attribute: 3
+    existence: 0
+    count: 3
+    manipulation: 0
   task_context: |
     High-level task:
     Put the toy cars into the brown basket and put the fruit into the black basket.
@@ -65,7 +65,7 @@ vqa:
     A small black toy car : black car
     Various toy cars : <color> car
     Rule for Various toy cars: if the car color is identifiable, set CanonicalRef to "<color> car" (e.g., blue car, white car). Use a single color word.
-  sample_hz: 100
+  sample_hz: 1
   target_width: 424
   target_height: 240
   output_format: "jsonl"
