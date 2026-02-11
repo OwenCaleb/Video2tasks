@@ -30,7 +30,7 @@ def _decode_b64_to_numpy(b64_str: str) -> Optional[np.ndarray]:
 
 
 def _parse_cot_response(text: str) -> Dict[str, Any]:
-    """Extract JSON with 'cot' key from raw VLM text."""
+    """Extract JSON with 'cot' and 'subtask' keys from raw VLM text."""
     if not text:
         return {}
     text = text.strip().replace("```json", "").replace("```", "").strip()
@@ -46,7 +46,7 @@ def _parse_cot_response(text: str) -> Dict[str, Any]:
     if start != -1 and end != -1 and end > start:
         try:
             data = json.loads(text[start : end + 1])
-            if isinstance(data, dict):
+            if isinstance(data, dict) and "cot" in data:
                 return data
         except json.JSONDecodeError:
             pass
@@ -120,7 +120,8 @@ def run_cot_worker(config: Config) -> None:
                     continue
 
                 task_id = job.get("task_id", "unknown")
-                instruction = job.get("instruction", "unknown")
+                subtask = job.get("subtask", "unknown")
+                high_level_instruction = job.get("high_level_instruction", "")
 
                 # ---- Decode images ----
                 images_b64 = job.get("images", [])
@@ -133,7 +134,7 @@ def run_cot_worker(config: Config) -> None:
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
 
                 # ---- VLM inference ----
-                prompt = build_cot_prompt(instruction, len(images))
+                prompt = build_cot_prompt(high_level_instruction, subtask, len(images))
                 vlm_json: Dict[str, Any] = {}
                 raw_result: Any = None
                 t0 = time.time()
@@ -166,7 +167,8 @@ def run_cot_worker(config: Config) -> None:
 
                 if vlm_json.get("cot"):
                     cot_preview = vlm_json["cot"][:80] + "..." if len(vlm_json.get("cot", "")) > 80 else vlm_json.get("cot", "")
-                    print(f"[CoT Done] {task_id} {elapsed:.1f}s -> {cot_preview}")
+                    print(f"[CoT Done] {task_id} {elapsed:.1f}s subtask={subtask}")
+                    print(f"  cot: {cot_preview}")
                 else:
                     _log_parse_failure(task_id, raw_result)
                     print(f"[CoT Fail] {task_id} -> trigger server retry")

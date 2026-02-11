@@ -406,10 +406,10 @@ v2t-worker --config config.yaml --mode cot
   "segments": [
     {
       "seg_id": 0,
-      "instruction": "pick up red toy car",
+      "instruction": "Put the toy cars into the brown basket and put the fruit into the black basket",
+      "cot": "I need to determine the next object to be operated.\nPlan: {toy cars → brown basket, fruit → black basket}\nObjects: [red car (right), gold car (center), avocado (left edge)]\nNext: avocado\nReason: closest to gripper, fruit category",
       "start_frame": 0,
-      "end_frame": 300,
-      "cot": "The red toy car is on the right side of the table..."
+      "end_frame": 300
     }
   ]
 }

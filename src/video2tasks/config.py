@@ -151,6 +151,10 @@ class CoTConfig(BaseModel):
         default="default",
         description="run_id of the segment stage whose outputs to read"
     )
+    high_level_instruction: str = Field(
+        default="",
+        description="High-level task instruction, e.g. 'Put the toy cars into the brown basket and put the fruit into the black basket'"
+    )
     frames_per_segment: int = Field(
         default=8,
         description="Number of frames to sample from each segment"

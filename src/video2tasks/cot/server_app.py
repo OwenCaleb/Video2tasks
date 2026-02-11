@@ -93,6 +93,7 @@ def create_cot_app(config: Config) -> FastAPI:
     frames_per_seg = cot_cfg.frames_per_segment
     target_w = cot_cfg.target_width
     target_h = cot_cfg.target_height
+    high_level_instruction = cot_cfg.high_level_instruction
 
     # Segment run directory (where segment outputs live)
     # segment outputs: {base_dir}/{subset}/{segment_run_id}/samples/{sample_id}/segments.json
@@ -184,7 +185,7 @@ def create_cot_app(config: Config) -> FastAPI:
         cot_run_dir = str(meta.get("cot_run_dir", ""))
         sample_id = str(meta.get("sample_id", "unknown"))
         seg_id = meta.get("seg_id", -1)
-        instruction = str(meta.get("instruction", ""))
+        subtask = str(meta.get("subtask", ""))
 
         if cot_run_dir:
             sample_key = f"{meta.get('subset', '')}::{sample_id}"
@@ -206,10 +207,10 @@ def create_cot_app(config: Config) -> FastAPI:
                 segments = [s for s in segments if s.get("seg_id") != seg_id]
                 segments.append({
                     "seg_id": seg_id,
-                    "instruction": instruction,
+                    "instruction": res.vlm_json.get("instruction", ""),
+                    "cot": res.vlm_json.get("cot", ""),
                     "start_frame": meta.get("start_frame"),
                     "end_frame": meta.get("end_frame"),
-                    "cot": res.vlm_json.get("cot", ""),
                 })
                 segments.sort(key=lambda s: s.get("seg_id", 0))
                 existing["segments"] = segments
@@ -355,12 +356,13 @@ def create_cot_app(config: Config) -> FastAPI:
                         job = {
                             "task_id": tid,
                             "images": images_b64,
-                            "instruction": instruction,
+                            "subtask": instruction,
+                            "high_level_instruction": high_level_instruction,
                             "meta": {
                                 "subset": dm["subset"],
                                 "sample_id": sid,
                                 "seg_id": seg_id,
-                                "instruction": instruction,
+                                "subtask": instruction,
                                 "start_frame": start_f,
                                 "end_frame": end_f,
                                 "cot_run_dir": dm["cot_run_dir"],
