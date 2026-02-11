@@ -217,6 +217,40 @@ class VQAPromptRegistry:
             question_types = self.list_types()
         
         parts = []
+                # ✅ 在这里插入你的任务上下文（对所有 question types 生效）
+        task_context = """### Task Context (Prior Knowledge)
+High-level task:
+Put the toy cars into the brown basket and put the fruit into the black basket.
+
+Object inventory (some props may repeat):
+- Containers:
+Descriptor : CanonicalRef
+A brown rectangular bamboo-woven storage basket : brown basket
+A black rectangular bamboo-woven storage basket : black basket
+- Fruit:
+A green round kiwifruit : kiwi
+Half a kiwifruit with a brown fuzzy skin and a green interior (a kind of ground fruit when look) : kiwi
+A purple bunch of grapes : grapes
+Half a red apple with a white interior : apple
+A yellow avocado with a white center and an orange pit : avocado
+A green avocado (alligator pear) with a bumpy, textured skin : avocado
+An orange with a bright orange peel : orange
+A small round orange-colored citrus fruit with a green stem : orange
+- Toy cars:
+A small red toy truck : red car
+A small red toy car : red car
+A small gold toy car : gold car
+A small black toy car : black car
+Various toy cars : <color> car
+
+### Naming Constraint
+In all answers, mention objects and containers using only CanonicalRef exactly as listed above.
+If an object cannot be mapped to a CanonicalRef, skip it.
+            """
+
+        if task_context:
+            parts.append(task_context.strip())
+            parts.append("")
         parts.append(f"You are analyzing {'an image' if n_images == 1 else f'{n_images} images'} from a robot manipulation scenario.")
         parts.append("Answer the following VQA questions about the image(s).")
         parts.append("IMPORTANT: Return ONLY a single JSON object with key 'qas'.")
