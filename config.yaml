@@ -4,7 +4,7 @@
 # Dataset configuration
 # Format: list of {root: path, subset: name} pairs
 datasets:
-  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz"  # Path to your video data directory
+  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz_old"  # Path to your video data directory
     subset: "video_retarget"   # Subdirectory name containing video samples
 
 # Run configuration

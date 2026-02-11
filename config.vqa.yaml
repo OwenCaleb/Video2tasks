@@ -2,7 +2,7 @@
 # Copy this file to config.yaml and customize for your setup
 
 datasets:
-  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz"  # Path to extracted frame images
+  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz_old"  # Path to extracted frame images
     subset: "frame_retarget"     # Subdirectory containing frames or per-sample subfolders
 
 run:
