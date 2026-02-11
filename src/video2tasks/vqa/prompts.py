@@ -1,9 +1,9 @@
 """VQA prompt templates with fixed question slots and Task Context.
 
 Each question type defines a **fixed ordered list of questions** with
-constrained answer spaces.  Questions may contain ``[Object]`` placeholders;
-the VLM expands each such template into one QA entry **per visible object**
-from the object inventory, using only CanonicalRef names.
+constrained answer spaces. Questions may contain ``[Object]`` placeholders;
+the VLM must pick a single relevant object and replace ``[Object]`` with its
+CanonicalRef, producing exactly one QA per template.
 
 The output format is the classic
 ``{"qas": [{"type": ..., "question": ..., "answer": ...}]}``
@@ -20,8 +20,8 @@ from dataclasses import dataclass, field
 class VQAFixedSlotTemplate:
     """A VQA template with a fixed ordered list of (question, answer_hint) slots.
 
-    If a question contains ``[Object]``, the VLM should answer it once per
-    visible object from the inventory (per-object expansion).
+    If a question contains ``[Object]``, the VLM should answer it once for a
+    single relevant object (no per-object expansion).
     """
     type_name: str
     description: str
@@ -200,27 +200,27 @@ class VQAPromptRegistry:
             "alternative names."
         )
         lines.append(
-            "2. If a question contains [Object], expand it for EACH visible "
-            "object from the inventory.  Replace [Object] with the object's "
-            "CanonicalRef in the \"question\" field."
+            "2. If a question contains [Object], choose ONE relevant object "
+            "and replace [Object] with its CanonicalRef in the \"question\" field."
         )
         lines.append("")
 
         # --- Questions ---
         has_object_placeholder = any("[Object]" in s["question"] for s in slots)
+        lines.append(
+            f"Answer EXACTLY the {len(slots)} question(s) below about "
+            f"\"{type_name}\" in the listed order."
+        )
         if has_object_placeholder:
             lines.append(
-                f"Below are {len(slots)} question TEMPLATE(s) about "
-                f"\"{type_name}\".  For each template containing [Object], "
-                f"generate one QA entry per visible object from the inventory, "
-                f"replacing [Object] with the CanonicalRef.  "
-                f"For templates WITHOUT [Object], generate exactly one QA entry."
+                "For any template containing [Object], choose ONE relevant object "
+                "and replace [Object] with its CanonicalRef."
             )
-        else:
-            lines.append(
-                f"Answer EXACTLY the {len(slots)} question(s) below about "
-                f"\"{type_name}\" in the listed order."
-            )
+        lines.append(
+            "Generate exactly questions_per_type QAs for this type. "
+            "You MUST choose only from the templates provided below; "
+            "do not invent new questions or add extra QAs."
+        )
         lines.append("")
 
         for i, slot in enumerate(slots, 1):
@@ -238,22 +238,13 @@ class VQAPromptRegistry:
         lines.append("{")
         lines.append('  "qas": [')
 
-        if has_object_placeholder:
-            # Show expanded examples
+        for i, slot in enumerate(slots):
+            comma = "," if i < len(slots) - 1 else ""
             lines.append(
                 f'    {{"type": "{type_name}", '
-                f'"question": "<question with CanonicalRef filled in>", '
-                f'"answer": "..."}},'
+                f'"question": "{slot["question"]}", '
+                f'"answer": "..."}}{comma}'
             )
-            lines.append('    ...')
-        else:
-            for i, slot in enumerate(slots):
-                comma = "," if i < len(slots) - 1 else ""
-                lines.append(
-                    f'    {{"type": "{type_name}", '
-                    f'"question": "{slot["question"]}", '
-                    f'"answer": "..."}}{comma}'
-                )
 
         lines.append("  ]")
         lines.append("}")
