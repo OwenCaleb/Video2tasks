@@ -125,13 +125,10 @@ _register(VQAFixedSlotTemplate(
 # --- existence (additions) ---
 {"question": "Is [Object] partially occluded?",
  "answer_space": "yes / no"},
-
 {"question": "Is [Object] fully visible?",
  "answer_space": "yes / no"},
-
 {"question": "Is there any obstacle between the gripper and [Object]?",
  "answer_space": "yes / no"},
-
 {"question": "Is any container open?",
  "answer_space": "yes / no"},
 
@@ -180,16 +177,12 @@ _register(VQAFixedSlotTemplate(
         # --- manipulation (additions) ---
 {"question": "Is [Object] currently stable?",
  "answer_space": "yes / no"},
-
 {"question": "Would grasping [Object] cause collision?",
  "answer_space": "yes / no, with brief reason"},
-
 {"question": "Should [Object] be grasped before any other object?",
  "answer_space": "yes / no, with brief reason"},
-
 {"question": "Is the gripper aligned with [Object]?",
  "answer_space": "yes / no"},
-
 {"question": "What constraint applies to manipulating [Object]?",
  "answer_space": "One of: fragile, heavy, slippery, none"},
     ],
