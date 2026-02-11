@@ -93,6 +93,14 @@ class VQAConfig(BaseModel):
         default=["spatial", "attribute", "existence", "count", "manipulation"],
         description="Question types to ask"
     )
+    questions_per_type: dict = Field(
+        default_factory=dict,
+        description="Max questions per type, e.g. {spatial: 4, count: 2}. Omitted types use all slots."
+    )
+    task_context: str = Field(
+        default="",
+        description="Task context block (high-level task, object inventory, CanonicalRef mapping) injected into every VQA prompt."
+    )
     sample_hz: float = Field(
         default=1.0,
         description="Frame sampling interval. frame_idx = numeric_id * sample_hz"

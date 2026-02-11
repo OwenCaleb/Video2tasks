@@ -56,10 +56,7 @@ progress:
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR
 
-# VQA configuration (only used when run.task_type: "vqa")
-vqa:
-  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
-  sample_hz: 1.0
-  target_width: 424
-  target_height: 240
-  output_format: "jsonl"  # "jsonl" (default), "parquet" (optional)
+cot:
+  segment_run_id: "default"
+  high_level_instruction: "Put the toy cars into the brown basket and put the fruit into the black basket"
+  frames_per_segment: 8

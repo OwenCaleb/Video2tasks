@@ -333,12 +333,26 @@ Optional parquet support:
 pip install -e ".[parquet]"
 ```
 
-### Output (per-type JSONL)
+### Output (per-type JSONL — fixed question templates, per-object expansion)
 
-Each question type produces its own JSONL file, one line per frame:
+Each question type produces its own JSONL file.  Question **templates** are
+fixed and deterministic; templates containing `[Object]` are expanded once
+per visible object from the inventory (using CanonicalRef).  The number of
+templates per type is controlled by `questions_per_type`.
 
+**spatial.jsonl** (per-object questions):
 ```json
-{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "spatial", "question": "What objects are to the LEFT of brown basket?", "answer": "kiwi, avocado"}, {"type": "spatial", "question": "What objects are to the RIGHT of brown basket?", "answer": "red car"}, {"type": "spatial", "question": "What objects are to the LEFT of red car?", "answer": "brown basket, kiwi"}, {"type": "spatial", "question": "What objects are to the RIGHT of red car?", "answer": "gold car"}]}
+```
+
+**attribute.jsonl** (per-object questions):
+```json
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "attribute", "question": "What is the color of brown basket?", "answer": "brown"}, {"type": "attribute", "question": "What is the material of brown basket?", "answer": "wicker"}, {"type": "attribute", "question": "What is the color of red car?", "answer": "red"}, {"type": "attribute", "question": "What is the material of red car?", "answer": "plastic"}]}
+```
+
+**count.jsonl** (scene-level, no expansion):
+```json
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "count", "question": "How many graspable objects are visible?", "answer": "5"}, {"type": "count", "question": "How many containers are visible?", "answer": "2"}]}
 ```
 
 Output path (5 types → 5 files per sample):

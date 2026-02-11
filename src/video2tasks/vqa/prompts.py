@@ -1,292 +1,172 @@
-"""VQA prompt templates for different question types.
+"""VQA prompt templates with fixed question slots and Task Context.
 
-This module provides configurable and extensible prompt templates for VQA.
-New question types can be added by registering new prompt templates.
+Each question type defines a **fixed ordered list of questions** with
+constrained answer spaces.  Questions may contain ``[Object]`` placeholders;
+the VLM expands each such template into one QA entry **per visible object**
+from the object inventory, using only CanonicalRef names.
+
+The output format is the classic
+``{"qas": [{"type": ..., "question": ..., "answer": ...}]}``
+
+The number of question *templates* per type is controlled by
+``questions_per_type`` in config — it takes the first N from the fixed list.
 """
 
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 
 
 @dataclass
-class VQAPromptTemplate:
-    """A VQA prompt template for a specific question type."""
+class VQAFixedSlotTemplate:
+    """A VQA template with a fixed ordered list of (question, answer_hint) slots.
+
+    If a question contains ``[Object]``, the VLM should answer it once per
+    visible object from the inventory (per-object expansion).
+    """
     type_name: str
     description: str
-    prompt_template: str
-    output_format: str = "json"
-    examples: List[Dict[str, str]] = field(default_factory=list)
+    slots: List[Dict[str, str]] = field(default_factory=list)
+    #  Each slot: {"question": "...", "answer_space": "..."}
 
 
-# Default prompt templates for robotics manipulation domain
-_DEFAULT_PROMPTS: Dict[str, VQAPromptTemplate] = {}
+# Default templates ------------------------------------------------------------
+_DEFAULT_PROMPTS: Dict[str, VQAFixedSlotTemplate] = {}
 
 
-def _register_default(template: VQAPromptTemplate) -> VQAPromptTemplate:
-    """Register a default prompt template."""
-    _DEFAULT_PROMPTS[template.type_name] = template
-    return template
+def _register(t: VQAFixedSlotTemplate) -> VQAFixedSlotTemplate:
+    _DEFAULT_PROMPTS[t.type_name] = t
+    return t
 
 
-# Spatial relationship questions
-_register_default(VQAPromptTemplate(
+_register(VQAFixedSlotTemplate(
     type_name="spatial",
-    description="Spatial relationship questions (left/right/front/behind/inside/on/top-of/distance)",
-    prompt_template="""Analyze the spatial relationships between objects in this image.
-Focus on the robot gripper/hand and objects in the scene.
-
-Answer the following spatial questions about the image:
-1. What objects are to the LEFT of the robot gripper?
-2. What objects are to the RIGHT of the robot gripper?
-3. What objects are IN FRONT of the robot gripper?
-4. What objects are BEHIND the robot gripper?
-5. Are there any objects ON TOP of other objects?
-6. Are there any objects INSIDE containers?
-7. Estimate the DISTANCE (close/medium/far) from the gripper to the nearest graspable object.
-
-Respond with a valid JSON object:
-{
-  "qas": [
-    {"type": "spatial", "question": "What objects are to the LEFT of the gripper?", "answer": "..."},
-    {"type": "spatial", "question": "What objects are to the RIGHT of the gripper?", "answer": "..."},
-    {"type": "spatial", "question": "What objects are IN FRONT of the gripper?", "answer": "..."},
-    {"type": "spatial", "question": "What objects are BEHIND the gripper?", "answer": "..."},
-    {"type": "spatial", "question": "Are there objects ON TOP of other objects?", "answer": "..."},
-    {"type": "spatial", "question": "Are there objects INSIDE containers?", "answer": "..."},
-    {"type": "spatial", "question": "Distance to nearest graspable object?", "answer": "..."}
-  ]
-}""",
-    examples=[
-        {"question": "What objects are to the LEFT of the gripper?", "answer": "A red cup and a blue plate"},
-        {"question": "Distance to nearest graspable object?", "answer": "close (approximately 5cm)"},
-    ]
+    description="Spatial relationship questions (per-object)",
+    slots=[
+        {"question": "What objects are to the LEFT of [Object]?",
+         "answer_space": "List CanonicalRef names, or 'none'"},
+        {"question": "What objects are to the RIGHT of [Object]?",
+         "answer_space": "List CanonicalRef names, or 'none'"},
+        {"question": "What objects are IN FRONT of [Object]?",
+         "answer_space": "List CanonicalRef names, or 'none'"},
+        {"question": "What objects are BEHIND [Object]?",
+         "answer_space": "List CanonicalRef names, or 'none'"},
+        {"question": "What objects are ABOVE [Object]?",
+         "answer_space": "List CanonicalRef names, or 'none'"},
+        {"question": "What objects are BELOW [Object]?",
+         "answer_space": "List CanonicalRef names, or 'none'"},
+        {"question": "What is the distance between the gripper and [Object]?",
+         "answer_space": "One of: touching, close, medium, far"},
+    ],
 ))
 
 
-# Attribute questions
-_register_default(VQAPromptTemplate(
+_register(VQAFixedSlotTemplate(
     type_name="attribute",
-    description="Object attribute questions (color, material, state, etc.)",
-    prompt_template="""Analyze the attributes of objects visible in this image.
-Focus on objects relevant to robot manipulation tasks.
-
-For each visible object, identify:
-1. COLOR: What color is each object?
-2. MATERIAL: What material appears to be (metal/plastic/wood/fabric/glass)?
-3. STATE: Is any object open/closed? On/off? Empty/full?
-4. GRASP STATE: Is the robot currently grasping any object?
-
-Respond with a valid JSON object:
-{
-  "qas": [
-    {"type": "attribute", "question": "What color is the [object]?", "answer": "..."},
-    {"type": "attribute", "question": "What material is the [object]?", "answer": "..."},
-    {"type": "attribute", "question": "What is the state of the [object]?", "answer": "..."},
-    {"type": "attribute", "question": "Is the robot grasping any object?", "answer": "..."}
-  ]
-}""",
-    examples=[
-        {"question": "What color is the cup?", "answer": "red"},
-        {"question": "Is the drawer open or closed?", "answer": "open"},
-    ]
+    description="Per-object attribute questions",
+    slots=[
+        {"question": "What is the color of [Object]?",
+         "answer_space": "Color name(s)"},
+        {"question": "What is the shape of [Object]?",
+         "answer_space": "Brief shape description"},
+        {"question": "What is the material of [Object]?",
+         "answer_space": "One of: metal, plastic, wood, fabric, glass, wicker, rubber, other"},
+        {"question": "Where is [Object] relative to the gripper?",
+         "answer_space": "Brief spatial description (e.g. left, right, in front, behind, in hand)"},
+        {"question": "Is the gripper grasping [Object]?",
+         "answer_space": "yes / no"},
+    ],
 ))
 
 
-# Existence / Yes-No questions
-_register_default(VQAPromptTemplate(
+_register(VQAFixedSlotTemplate(
     type_name="existence",
-    description="Existence and yes/no questions",
-    prompt_template="""Answer yes/no existence questions about this image.
-Focus on objects and conditions relevant to robot manipulation.
-
-Answer these questions:
-1. Is there a robot gripper/hand visible in the image?
-2. Are there any graspable objects on the table/surface?
-3. Is there any object currently being held?
-4. Are there any obstacles blocking the robot's path?
-5. Is the workspace clear for manipulation?
-
-Respond with a valid JSON object:
-{
-  "qas": [
-    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes/no"},
-    {"type": "existence", "question": "Are there graspable objects on the surface?", "answer": "yes/no"},
-    {"type": "existence", "question": "Is any object currently being held?", "answer": "yes/no"},
-    {"type": "existence", "question": "Are there obstacles blocking the path?", "answer": "yes/no"},
-    {"type": "existence", "question": "Is the workspace clear?", "answer": "yes/no"}
-  ]
-}""",
-    examples=[
-        {"question": "Is there a robot gripper visible?", "answer": "yes"},
-        {"question": "Is the workspace clear?", "answer": "no, there are multiple objects"},
-    ]
+    description="Per-object existence/visibility questions",
+    slots=[
+        {"question": "Is [Object] visible in the scene?",
+         "answer_space": "yes / no"},
+        {"question": "Is [Object] on the surface?",
+         "answer_space": "yes / no"},
+        {"question": "Is [Object] inside a container?",
+         "answer_space": "yes (which container CanonicalRef) / no"},
+        {"question": "Is [Object] being held by the gripper?",
+         "answer_space": "yes / no"},
+        {"question": "Is the workspace clear?",
+         "answer_space": "yes / no, with brief reason"},
+    ],
 ))
 
 
-# Counting questions
-_register_default(VQAPromptTemplate(
+_register(VQAFixedSlotTemplate(
     type_name="count",
-    description="Object counting questions",
-    prompt_template="""Count objects visible in this image.
-Focus on countable objects relevant to robot manipulation.
-
-Answer these counting questions:
-1. How many distinct graspable objects are visible?
-2. How many containers (cups, bowls, boxes) are visible?
-3. How many tools or utensils are visible?
-4. How many objects are currently on the table/surface?
-
-Respond with a valid JSON object:
-{
-  "qas": [
-    {"type": "count", "question": "How many graspable objects are visible?", "answer": "N"},
-    {"type": "count", "question": "How many containers are visible?", "answer": "N"},
-    {"type": "count", "question": "How many tools/utensils are visible?", "answer": "N"},
-    {"type": "count", "question": "How many objects are on the surface?", "answer": "N"}
-  ]
-}""",
-    examples=[
-        {"question": "How many graspable objects are visible?", "answer": "5"},
-        {"question": "How many containers are visible?", "answer": "2 (one cup and one bowl)"},
-    ]
+    description="Scene-level counting questions",
+    slots=[
+        {"question": "How many graspable objects are visible?",
+         "answer_space": "integer"},
+        {"question": "How many containers are visible?",
+         "answer_space": "integer"},
+        {"question": "How many objects are on the surface?",
+         "answer_space": "integer"},
+        {"question": "How many objects are inside containers?",
+         "answer_space": "integer"},
+    ],
 ))
 
 
-# Robot manipulation specific questions
-_register_default(VQAPromptTemplate(
+_register(VQAFixedSlotTemplate(
     type_name="manipulation",
-    description="Robot manipulation specific questions (graspability, target position, action hints)",
-    prompt_template="""Analyze this image from a robot manipulation perspective.
-
-Answer these manipulation-related questions:
-1. GRASPABLE: Which objects appear graspable by a robot gripper?
-2. GRASP POINT: For the most prominent graspable object, where should the gripper grasp it?
-3. TARGET POSITION: If there's an ongoing task, where should the object be placed?
-4. ACTION HINT: What manipulation action appears to be happening or should happen next?
-5. GRIPPER STATE: Is the gripper open, closed, or partially closed?
-
-Respond with a valid JSON object:
-{
-  "qas": [
-    {"type": "manipulation", "question": "Which objects are graspable?", "answer": "..."},
-    {"type": "manipulation", "question": "Where should the gripper grasp the [object]?", "answer": "..."},
-    {"type": "manipulation", "question": "Where should the object be placed?", "answer": "..."},
-    {"type": "manipulation", "question": "What action should happen next?", "answer": "..."},
-    {"type": "manipulation", "question": "What is the gripper state?", "answer": "..."}
-  ]
-}""",
-    examples=[
-        {"question": "Which objects are graspable?", "answer": "The red cup and the spoon are graspable"},
-        {"question": "Where should the gripper grasp the cup?", "answer": "At the handle on the right side"},
-        {"question": "What action should happen next?", "answer": "Pick up the cup and move it to the left"},
-    ]
+    description="Manipulation state questions (per-object and scene)",
+    slots=[
+        {"question": "Is [Object] graspable?",
+         "answer_space": "yes / no, with brief reason"},
+        {"question": "Where should the gripper grasp [Object]?",
+         "answer_space": "Brief spatial description of grasp point"},
+        {"question": "Where should [Object] be placed?",
+         "answer_space": "Target container/location CanonicalRef"},
+        {"question": "What action should happen next?",
+         "answer_space": "One of: approach, grasp, lift, move, place, release, idle"},
+        {"question": "What is the gripper state?",
+         "answer_space": "One of: open, closed, holding <CanonicalRef>"},
+    ],
 ))
 
+
+# Registry ---------------------------------------------------------------------
 
 class VQAPromptRegistry:
-    """Registry for VQA prompt templates.
-    
-    Supports adding custom prompt templates without modifying core code.
-    """
-    
+    """Registry for fixed-question VQA prompt templates."""
+
     def __init__(self) -> None:
-        self._prompts: Dict[str, VQAPromptTemplate] = {}
-    
-    def register(self, template: VQAPromptTemplate) -> None:
-        """Register a prompt template."""
+        self._prompts: Dict[str, VQAFixedSlotTemplate] = {}
+
+    def register(self, template: VQAFixedSlotTemplate) -> None:
         self._prompts[template.type_name] = template
-    
-    def get(self, type_name: str) -> Optional[VQAPromptTemplate]:
-        """Get a prompt template by type name."""
+
+    def get(self, type_name: str) -> Optional[VQAFixedSlotTemplate]:
         return self._prompts.get(type_name)
-    
+
     def list_types(self) -> List[str]:
-        """List all registered question types."""
         return list(self._prompts.keys())
-    
-    def get_prompt(self, type_name: str) -> str:
-        """Get the prompt string for a question type."""
-        template = self.get(type_name)
-        if template is None:
-            raise ValueError(f"Unknown question type: {type_name}. Available: {self.list_types()}")
-        return template.prompt_template
-    
-    def build_combined_prompt(self, question_types: List[str], n_images: int = 1) -> str:
-        """Build a combined prompt for multiple question types."""
-        if not question_types:
-            question_types = self.list_types()
-        
-        parts = []
-                # ✅ 在这里插入你的任务上下文（对所有 question types 生效）
-        task_context = """### Task Context (Prior Knowledge)
-High-level task:
-Put the toy cars into the brown basket and put the fruit into the black basket.
 
-Object inventory (some props may repeat):
-- Containers:
-Descriptor : CanonicalRef
-A brown rectangular bamboo-woven storage basket : brown basket
-A black rectangular bamboo-woven storage basket : black basket
-- Fruit:
-A green round kiwifruit : kiwi
-Half a kiwifruit with a brown fuzzy skin and a green interior (a kind of ground fruit when look) : kiwi
-A purple bunch of grapes : grapes
-Half a red apple with a white interior : apple
-A yellow avocado with a white center and an orange pit : avocado
-A green avocado (alligator pear) with a bumpy, textured skin : avocado
-An orange with a bright orange peel : orange
-A small round orange-colored citrus fruit with a green stem : orange
-- Toy cars:
-A small red toy truck : red car
-A small red toy car : red car
-A small gold toy car : gold car
-A small black toy car : black car
-Various toy cars : <color> car
+    def build_single_type_prompt(
+        self,
+        type_name: str,
+        n_images: int = 1,
+        max_questions: Optional[int] = None,
+        task_context: Optional[str] = None,
+    ) -> str:
+        """Build a prompt for one question type.
 
-### Naming Constraint
-In all answers, mention objects and containers using only CanonicalRef exactly as listed above.
-If an object cannot be mapped to a CanonicalRef, skip it.
-            """
-
-        if task_context:
-            parts.append(task_context.strip())
-            parts.append("")
-        parts.append(f"You are analyzing {'an image' if n_images == 1 else f'{n_images} images'} from a robot manipulation scenario.")
-        parts.append("Answer the following VQA questions about the image(s).")
-        parts.append("IMPORTANT: Return ONLY a single JSON object with key 'qas'.")
-        parts.append("Do NOT add markdown/code fences or extra text. If unsure, answer 'unknown'.")
-        parts.append("")
-        
-        for qtype in question_types:
-            template = self.get(qtype)
-            if template:
-                parts.append(f"=== {qtype.upper()} QUESTIONS ===")
-                parts.append(template.prompt_template)
-                parts.append("")
-        
-        parts.append("Combine all answers into a single JSON response:")
-        parts.append('{')
-        parts.append('  "qas": [')
-        parts.append('    {"type": "...", "question": "...", "answer": "..."},')
-        parts.append('    ...')
-        parts.append('  ]')
-        parts.append('}')
-        parts.append("")
-        parts.append("Example (format only, do not copy content):")
-        parts.append('{')
-        parts.append('  "qas": [')
-        parts.append('    {"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"},')
-        parts.append('    {"type": "count", "question": "How many graspable objects are visible?", "answer": "2"}')
-        parts.append('  ]')
-        parts.append('}')
-        
-        return "\n".join(parts)
-
-    def build_single_type_prompt(self, type_name: str, n_images: int = 1) -> str:
-        """Build a prompt for a single question type.
-
-        Shorter than build_combined_prompt – only one type at a time,
-        which greatly improves JSON compliance from the VLM.
+        Parameters
+        ----------
+        type_name : str
+            Question type (e.g. "spatial").
+        n_images : int
+            Number of images provided.
+        max_questions : int, optional
+            Only use the first N question templates.
+        task_context : str, optional
+            Free-form task context block (high-level task, object inventory,
+            CanonicalRef policy).  Prepended verbatim after the header.
         """
         template = self.get(type_name)
         if template is None:
@@ -294,19 +174,95 @@ If an object cannot be mapped to a CanonicalRef, skip it.
                 f"Unknown question type: {type_name}. Available: {self.list_types()}"
             )
 
+        slots = template.slots
+        if max_questions is not None and 0 < max_questions < len(slots):
+            slots = slots[:max_questions]
+
+        # --- Header ---
         header = (
             f"You are analyzing {'an image' if n_images == 1 else f'{n_images} images'} "
             f"from a robot manipulation scenario."
         )
-        instruction = (
-            "IMPORTANT: Return ONLY a valid JSON object with key 'qas'. "
-            "No markdown, no code fences, no extra text. If unsure, answer 'unknown'."
+
+        lines = [header, ""]
+
+        # --- Task Context (optional) ---
+        if task_context:
+            lines.append("### Task Context (Prior Knowledge)")
+            lines.append(task_context.strip())
+            lines.append("")
+
+        # --- Canonical Reference Policy (always present) ---
+        lines.append("### Canonical Reference Policy")
+        lines.append(
+            "1. CanonicalRef is the ONLY allowed name to mention any entity in "
+            "the output JSON.  Never invent synonyms, abbreviations, or "
+            "alternative names."
         )
-        return f"{header}\n{instruction}\n\n{template.prompt_template}"
+        lines.append(
+            "2. If a question contains [Object], expand it for EACH visible "
+            "object from the inventory.  Replace [Object] with the object's "
+            "CanonicalRef in the \"question\" field."
+        )
+        lines.append("")
+
+        # --- Questions ---
+        has_object_placeholder = any("[Object]" in s["question"] for s in slots)
+        if has_object_placeholder:
+            lines.append(
+                f"Below are {len(slots)} question TEMPLATE(s) about "
+                f"\"{type_name}\".  For each template containing [Object], "
+                f"generate one QA entry per visible object from the inventory, "
+                f"replacing [Object] with the CanonicalRef.  "
+                f"For templates WITHOUT [Object], generate exactly one QA entry."
+            )
+        else:
+            lines.append(
+                f"Answer EXACTLY the {len(slots)} question(s) below about "
+                f"\"{type_name}\" in the listed order."
+            )
+        lines.append("")
+
+        for i, slot in enumerate(slots, 1):
+            lines.append(f"{i}. \"{slot['question']}\"")
+            lines.append(f"   Answer space: {slot['answer_space']}")
+        lines.append("")
+
+        # --- Output schema ---
+        lines.append(
+            "IMPORTANT: Return ONLY a valid JSON object. "
+            "No markdown, no code fences, no extra text."
+        )
+        lines.append("")
+        lines.append("Output format:")
+        lines.append("{")
+        lines.append('  "qas": [')
+
+        if has_object_placeholder:
+            # Show expanded examples
+            lines.append(
+                f'    {{"type": "{type_name}", '
+                f'"question": "<question with CanonicalRef filled in>", '
+                f'"answer": "..."}},'
+            )
+            lines.append('    ...')
+        else:
+            for i, slot in enumerate(slots):
+                comma = "," if i < len(slots) - 1 else ""
+                lines.append(
+                    f'    {{"type": "{type_name}", '
+                    f'"question": "{slot["question"]}", '
+                    f'"answer": "..."}}{comma}'
+                )
+
+        lines.append("  ]")
+        lines.append("}")
+
+        return "\n".join(lines)
 
 
 def get_default_prompts() -> VQAPromptRegistry:
-    """Get a registry populated with default prompts."""
+    """Get a registry populated with default fixed-question prompts."""
     registry = VQAPromptRegistry()
     for template in _DEFAULT_PROMPTS.values():
         registry.register(template)

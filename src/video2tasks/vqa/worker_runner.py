@@ -79,6 +79,8 @@ def run_vqa_worker(config: Config) -> None:
 
     # ---- Prompt registry ----
     registry = get_default_prompts()
+    questions_per_type = getattr(config.vqa, "questions_per_type", {}) or {}
+    task_context = getattr(config.vqa, "task_context", "") or ""
 
     print(f"[VQA Worker] Connecting to {server_url}")
 
@@ -139,7 +141,12 @@ def run_vqa_worker(config: Config) -> None:
                     for attempt in range(MAX_LOCAL_RETRIES):
                         raw_result: Any = None
                         try:
-                            prompt = registry.build_single_type_prompt(qtype, len(images))
+                            max_q = questions_per_type.get(qtype)
+                            prompt = registry.build_single_type_prompt(
+                                qtype, len(images),
+                                max_questions=max_q,
+                                task_context=task_context or None,
+                            )
                             raw_result = backend.infer(images, prompt)
 
                             if isinstance(raw_result, dict):
@@ -209,7 +216,7 @@ def run_vqa_worker(config: Config) -> None:
 
 
 def _parse_vqa_response(text: str) -> Dict[str, Any]:
-    """Parse VQA response from text."""
+    """Parse VQA response — expects {"qas": [...]}."""
     if not text:
         return {}
 
@@ -228,7 +235,7 @@ def _parse_vqa_response(text: str) -> Dict[str, Any]:
     if start != -1 and end != -1 and end > start:
         try:
             data = json.loads(text[start : end + 1])
-            if isinstance(data, dict):
+            if isinstance(data, dict) and "qas" in data:
                 return data
         except json.JSONDecodeError:
             pass

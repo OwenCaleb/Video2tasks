@@ -33,7 +33,38 @@ worker:
     headers: {}
 
 vqa:
-  question_types: ["spatial"]
+  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  questions_per_type:
+    spatial: 7
+    attribute: 5
+    existence: 5
+    count: 4
+    manipulation: 5
+  task_context: |
+    High-level task:
+    Put the toy cars into the brown basket and put the fruit into the black basket.
+
+    Object inventory (some props may repeat):
+    - Containers:
+    Descriptor : CanonicalRef
+    A brown rectangular bamboo-woven storage basket : brown basket
+    A black rectangular bamboo-woven storage basket : black basket
+    - Fruit:
+    A green round kiwifruit : kiwi
+    Half a kiwifruit with a brown fuzzy skin and a green interior (a kind of ground fruit when look) : kiwi
+    A purple bunch of grapes : grapes
+    Half a red apple with a white interior : apple
+    A yellow avocado with a white center and an orange pit : avocado
+    A green avocado (alligator pear) with a bumpy, textured skin : avocado
+    An orange with a bright orange peel : orange
+    A small round orange-colored citrus fruit with a green stem : orange
+    - Toy cars:
+    A small red toy truck : red car
+    A small red toy car : red car
+    A small gold toy car : gold car
+    A small black toy car : black car
+    Various toy cars : <color> car
+    Rule for Various toy cars: if the car color is identifiable, set CanonicalRef to "<color> car" (e.g., blue car, white car). Use a single color word.
   sample_hz: 100
   target_width: 424
   target_height: 240
@@ -41,4 +72,3 @@ vqa:
 
 logging:
   level: "INFO"
-# question_types: ["spatial", "attribute", "existence", "count", "manipulation"]

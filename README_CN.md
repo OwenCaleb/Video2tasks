@@ -333,12 +333,25 @@ v2t-worker --config config.example.yaml --mode vqa
 pip install -e ".[parquet]"
 ```
 
-### 输出（per-type JSONL）
+### 输出（per-type JSONL — 固定问题模板，按物体展开）
 
-每种题型生成独立的 JSONL 文件，每行对应一帧：
+每种题型生成独立的 JSONL 文件。问题**模板**固定且确定；包含 `[Object]` 的模板
+会对 inventory 中每个可见物体展开（使用 CanonicalRef）。
+`questions_per_type` 控制每种类型的模板数量。
 
+**spatial.jsonl**（按物体展开）:
 ```json
-{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "existence", "question": "Is there a robot gripper visible?", "answer": "yes"}]}
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "spatial", "question": "What objects are to the LEFT of brown basket?", "answer": "kiwi, avocado"}, {"type": "spatial", "question": "What objects are to the RIGHT of brown basket?", "answer": "red car"}, {"type": "spatial", "question": "What objects are to the LEFT of red car?", "answer": "brown basket, kiwi"}, {"type": "spatial", "question": "What objects are to the RIGHT of red car?", "answer": "gold car"}]}
+```
+
+**attribute.jsonl**（按物体展开）:
+```json
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "attribute", "question": "What is the color of brown basket?", "answer": "brown"}, {"type": "attribute", "question": "What is the material of brown basket?", "answer": "wicker"}, {"type": "attribute", "question": "What is the color of red car?", "answer": "red"}, {"type": "attribute", "question": "What is the material of red car?", "answer": "plastic"}]}
+```
+
+**count.jsonl**（场景级，无展开）:
+```json
+{"frame_id": "000001", "frame_idx": 100, "qas": [{"type": "count", "question": "How many graspable objects are visible?", "answer": "5"}, {"type": "count", "question": "How many containers are visible?", "answer": "2"}]}
 ```
 
 输出路径（5 种题型 → 5 个文件）：
