@@ -58,6 +58,19 @@ _register(VQAFixedSlotTemplate(
          "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What is the distance between the gripper and [Object]?",
          "answer_space": "One of: touching, close, medium, far"},
+                # --- spatial (additions) ---
+        {"question": "Is [Object] touching the surface?",
+        "answer_space": "yes / no"},
+        {"question": "Is [Object] inside any container?",
+        "answer_space": "yes (which container CanonicalRef) / no"},
+        {"question": "Is [Object] to the LEFT of the gripper?",
+        "answer_space": "yes / no"},
+        {"question": "Is [Object] to the RIGHT of the gripper?",
+        "answer_space": "yes / no"},
+        {"question": "Is [Object] in the CENTER of the workspace?",
+        "answer_space": "yes / no"},
+        {"question": "Is [Object] within reach of the gripper?",
+        "answer_space": "yes / no"},
     ],
 ))
 
@@ -76,6 +89,21 @@ _register(VQAFixedSlotTemplate(
          "answer_space": "Brief spatial description (e.g. left, right, in front, behind, in hand)"},
         {"question": "Is the gripper grasping [Object]?",
          "answer_space": "yes / no"},
+        # --- attribute (additions) ---
+{"question": "What is the dominant color of [Object]?",
+ "answer_space": "Single color name"},
+
+{"question": "Is [Object] rigid or deformable?",
+ "answer_space": "rigid / deformable"},
+
+{"question": "Does [Object] have a handle or graspable part?",
+ "answer_space": "yes / no"},
+
+{"question": "Is [Object] transparent or opaque?",
+ "answer_space": "transparent / opaque / semi-transparent"},
+
+{"question": "Is [Object] upright or lying flat?",
+ "answer_space": "upright / lying flat"},
     ],
 ))
 
@@ -94,7 +122,20 @@ _register(VQAFixedSlotTemplate(
          "answer_space": "yes / no"},
         {"question": "Is the workspace clear?",
          "answer_space": "yes / no, with brief reason"},
-    ],
+# --- existence (additions) ---
+{"question": "Is [Object] partially occluded?",
+ "answer_space": "yes / no"},
+
+{"question": "Is [Object] fully visible?",
+ "answer_space": "yes / no"},
+
+{"question": "Is there any obstacle between the gripper and [Object]?",
+ "answer_space": "yes / no"},
+
+{"question": "Is any container open?",
+ "answer_space": "yes / no"},
+
+        ],
 ))
 
 
@@ -110,6 +151,14 @@ _register(VQAFixedSlotTemplate(
          "answer_space": "integer"},
         {"question": "How many objects are inside containers?",
          "answer_space": "integer"},
+        # --- count (additions) ---
+        {"question": "How many graspable objects are within reach of the gripper?",
+        "answer_space": "integer"},
+        {"question": "How many objects are partially occluded?",
+        "answer_space": "integer"},
+        {"question": "How many objects are stacked?",
+        "answer_space": "integer"},
+
     ],
 ))
 
@@ -128,6 +177,21 @@ _register(VQAFixedSlotTemplate(
          "answer_space": "One of: approach, grasp, lift, move, place, release, idle"},
         {"question": "What is the gripper state?",
          "answer_space": "One of: open, closed, holding <CanonicalRef>"},
+        # --- manipulation (additions) ---
+{"question": "Is [Object] currently stable?",
+ "answer_space": "yes / no"},
+
+{"question": "Would grasping [Object] cause collision?",
+ "answer_space": "yes / no, with brief reason"},
+
+{"question": "Should [Object] be grasped before any other object?",
+ "answer_space": "yes / no, with brief reason"},
+
+{"question": "Is the gripper aligned with [Object]?",
+ "answer_space": "yes / no"},
+
+{"question": "What constraint applies to manipulating [Object]?",
+ "answer_space": "One of: fragile, heavy, slippery, none"},
     ],
 ))
 
@@ -206,6 +270,10 @@ class VQAPromptRegistry:
             "2. If a question contains [Object], choose ONE relevant object "
             "and replace [Object] with its CanonicalRef in the \"question\" field."
         )
+        lines.append(
+            "3. Never output brackets in the question. Replace the placeholder "
+            "exactly, e.g. 'LEFT of red car' (no [ ])."
+        )
         lines.append("")
 
         # --- Questions ---
@@ -223,6 +291,10 @@ class VQAPromptRegistry:
             "Generate exactly questions_per_type QAs for this type. "
             "You MUST choose only from the templates provided below; "
             "do not invent new questions or add extra QAs."
+        )
+        lines.append(
+            "Each question must be copied from a template with [Object] replaced "
+            "by a CanonicalRef. Do NOT leave [Object] or add brackets around names."
         )
         lines.append("")
 
