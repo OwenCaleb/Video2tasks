@@ -13,6 +13,8 @@ The number of question *templates* per type is controlled by
 """
 
 from typing import Dict, List, Optional
+import random
+import time
 from dataclasses import dataclass, field
 
 
@@ -43,17 +45,17 @@ _register(VQAFixedSlotTemplate(
     description="Spatial relationship questions (per-object)",
     slots=[
         {"question": "What objects are to the LEFT of [Object]?",
-         "answer_space": "List CanonicalRef names, or 'none'"},
+         "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What objects are to the RIGHT of [Object]?",
-         "answer_space": "List CanonicalRef names, or 'none'"},
+         "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What objects are IN FRONT of [Object]?",
-         "answer_space": "List CanonicalRef names, or 'none'"},
+         "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What objects are BEHIND [Object]?",
-         "answer_space": "List CanonicalRef names, or 'none'"},
+         "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What objects are ABOVE [Object]?",
-         "answer_space": "List CanonicalRef names, or 'none'"},
+         "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What objects are BELOW [Object]?",
-         "answer_space": "List CanonicalRef names, or 'none'"},
+         "answer_space": "Single string listing CanonicalRef names, or 'none'"},
         {"question": "What is the distance between the gripper and [Object]?",
          "answer_space": "One of: touching, close, medium, far"},
     ],
@@ -176,7 +178,8 @@ class VQAPromptRegistry:
 
         slots = template.slots
         if max_questions is not None and 0 < max_questions < len(slots):
-            slots = slots[:max_questions]
+            rng = random.Random(time.time_ns())
+            slots = rng.sample(slots, k=max_questions)
 
         # --- Header ---
         header = (
