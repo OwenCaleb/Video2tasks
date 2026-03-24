@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import uvicorn
 
-from ..config import Config
+from ..config import Config, select_sample_ids
 from ..server.windowing import (
     read_video_info,
     FrameExtractor,
@@ -59,12 +59,45 @@ def _load_segments(segment_samples_dir: str, sample_id: str) -> Optional[Dict]:
         return json.load(f)
 
 
-def _sample_frame_ids(start_frame: int, end_frame: int, n: int) -> List[int]:
-    """Uniformly sample *n* frame indices from [start_frame, end_frame)."""
+def _sample_frame_ids(
+    start_frame: int,
+    end_frame: int,
+    fps: float,
+    sample_hz: float,
+    min_frames: int,
+    max_frames: int,
+) -> List[int]:
+    """Sample frame indices aligned to segment time span [start_frame, end_frame).
+
+    1) Build time-aligned samples using ``sample_hz`` and source ``fps``.
+    2) Ensure at least ``min_frames`` (if segment has enough frames).
+    3) Cap by ``max_frames`` to avoid oversized prompts.
+    """
     if end_frame <= start_frame:
-        return [start_frame]
-    ids = np.linspace(start_frame, end_frame - 1, num=n).astype(int)
-    return ids.tolist()
+        return [max(0, start_frame)]
+
+    segment_len = end_frame - start_frame
+    safe_fps = fps if fps > 1e-6 else 30.0
+    stride = max(1, int(round(safe_fps / sample_hz)))
+
+    frame_ids = list(range(start_frame, end_frame, stride))
+
+    if not frame_ids:
+        frame_ids = [start_frame]
+
+    # Ensure enough temporal coverage for very short segments.
+    target_min = min(min_frames, segment_len)
+    if target_min > 1 and len(frame_ids) < target_min:
+        frame_ids = np.linspace(start_frame, end_frame - 1, num=target_min).astype(int).tolist()
+
+    # Downsample if too many frames are selected.
+    if max_frames > 0 and len(frame_ids) > max_frames:
+        idx = np.linspace(0, len(frame_ids) - 1, num=max_frames).astype(int)
+        frame_ids = [frame_ids[i] for i in idx]
+
+    # Keep sorted unique ids inside the segment bounds.
+    uniq = sorted(set(fid for fid in frame_ids if start_frame <= fid < end_frame))
+    return uniq if uniq else [start_frame]
 
 
 def _load_completed_seg_ids(cot_run_dir: str, sample_id: str) -> set:
@@ -90,7 +123,9 @@ def create_cot_app(config: Config) -> FastAPI:
     app = FastAPI(title="Video2Tasks CoT Server")
 
     cot_cfg = config.cot
-    frames_per_seg = cot_cfg.frames_per_segment
+    sample_hz = cot_cfg.sample_hz
+    min_frames = cot_cfg.min_frames_per_segment
+    max_frames = cot_cfg.max_frames_per_segment
     target_w = cot_cfg.target_width
     target_h = cot_cfg.target_height
     high_level_instruction = cot_cfg.high_level_instruction
@@ -106,12 +141,12 @@ def create_cot_app(config: Config) -> FastAPI:
     # Discover datasets & samples
     dataset_metas: List[Dict[str, Any]] = []
     for ds in config.datasets:
-        data_dir = Path(ds.root) / ds.subset
+        data_dir = Path(ds.root) / ds.video_subset
         seg_samples_dir = str(
-            Path(config.run.base_dir) / ds.subset / seg_run_id / "samples"
+            Path(config.run.base_dir) / ds.video_subset / seg_run_id / "samples"
         )
         cot_run_dir = str(
-            Path(config.run.base_dir) / ds.subset / cot_run_id / "cot"
+            Path(config.run.base_dir) / ds.video_subset / cot_run_id / "cot"
         )
         Path(cot_run_dir).mkdir(parents=True, exist_ok=True)
 
@@ -123,11 +158,12 @@ def create_cot_app(config: Config) -> FastAPI:
                 for p in seg_samples_path.iterdir()
                 if p.is_dir() and (p / "segments.json").exists()
             )
+            sample_ids = select_sample_ids(sample_ids, ds.data)
         else:
             sample_ids = []
 
         dataset_metas.append({
-            "subset": ds.subset,
+            "subset": ds.video_subset,
             "data_dir": str(data_dir),
             "seg_samples_dir": seg_samples_dir,
             "cot_run_dir": cot_run_dir,
@@ -330,6 +366,7 @@ def create_cot_app(config: Config) -> FastAPI:
             completed = _load_completed_seg_ids(dm["cot_run_dir"], sid)
 
             try:
+                fps, _ = read_video_info(mp4)
                 with FrameExtractor(mp4) as extractor:
                     all_done = True
                     for seg in segments:
@@ -348,7 +385,14 @@ def create_cot_app(config: Config) -> FastAPI:
                         end_f = seg["end_frame"]
                         instruction = seg.get("instruction", "unknown")
 
-                        frame_ids = _sample_frame_ids(start_f, end_f, frames_per_seg)
+                        frame_ids = _sample_frame_ids(
+                            start_f,
+                            end_f,
+                            fps,
+                            sample_hz,
+                            min_frames,
+                            max_frames,
+                        )
                         images_b64 = extractor.get_many_b64(
                             frame_ids, target_w, target_h, compression=1
                         )

@@ -20,7 +20,11 @@ def main(config: Path) -> None:
         click.echo(f"Configuration valid: {config}")
         click.echo(f"  Datasets: {len(cfg.datasets)}")
         for ds in cfg.datasets:
-            click.echo(f"    - {ds.subset}: {ds.root}")
+            click.echo(
+                f"    - video={ds.video_subset}, frame={ds.frame_subset}: {ds.root}"
+            )
+            if ds.data:
+                click.echo(f"      data selector: {ds.data}")
         click.echo(f"  Run base: {cfg.run.base_dir}")
         click.echo(f"  Task type: {cfg.run.task_type}")
         click.echo(f"  Server: {cfg.server.host}:{cfg.server.port}")

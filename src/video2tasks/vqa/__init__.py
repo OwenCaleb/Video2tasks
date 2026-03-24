@@ -1,7 +1,8 @@
 """VQA (Visual Question Answering) module for frame-level annotation."""
 
 from .types import VQAResult, VQAQuestion, VQAJobData
-from .prompts import VQAPromptRegistry, get_default_prompts
+from ..prompt.vlm.task00001 import VQAPromptRegistry
+from ..prompt.loader import create_vqa_prompt_registry
 from .job_builder import VQAJobBuilder
 from .writer import VQAWriter
 
@@ -10,7 +11,7 @@ __all__ = [
     "VQAQuestion", 
     "VQAJobData",
     "VQAPromptRegistry",
-    "get_default_prompts",
+    "create_vqa_prompt_registry",
     "VQAJobBuilder",
     "VQAWriter",
 ]

@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import uvicorn
 
-from ..config import Config, VQAConfig
+from ..config import Config, VQAConfig, select_sample_ids
 
 
 class VQASubmitModel(BaseModel):
@@ -29,13 +29,13 @@ class VQADatasetCtx:
     def __init__(
         self,
         data_root: str,
-        subset: str,
+        frame_subset: str,
         frames_dir: str,
         output_dir: str,
         sample_id: str
     ):
         self.data_root = data_root
-        self.subset = subset
+        self.frame_subset = frame_subset
         self.frames_dir = frames_dir
         self.output_dir = output_dir
         self.sample_id = sample_id
@@ -46,20 +46,25 @@ def parse_vqa_datasets(config: Config) -> List[VQADatasetCtx]:
     """Parse VQA dataset configurations."""
     ctxs: List[VQADatasetCtx] = []
     for ds in config.datasets:
-        data_dir = Path(ds.root) / ds.subset
-        run_dir = Path(config.run.base_dir) / ds.subset / config.run.run_id / "vqa"
+        data_dir = Path(ds.root) / ds.frame_subset
+        run_dir = Path(config.run.base_dir) / ds.frame_subset / config.run.run_id / "vqa"
         run_dir.mkdir(parents=True, exist_ok=True)
 
         if data_dir.exists():
             subdirs = [p for p in data_dir.iterdir() if p.is_dir()]
             if subdirs:
-                for subdir in sorted(subdirs):
+                ordered_subdirs = sorted(subdirs, key=lambda p: p.name)
+                selected_ids = select_sample_ids([p.name for p in ordered_subdirs], ds.data)
+                selected_set = set(selected_ids)
+                for subdir in ordered_subdirs:
+                    if subdir.name not in selected_set:
+                        continue
                     sample_id = subdir.name
                     sample_output = run_dir / sample_id
                     sample_output.mkdir(parents=True, exist_ok=True)
                     ctx = VQADatasetCtx(
                         data_root=ds.root,
-                        subset=ds.subset,
+                        frame_subset=ds.frame_subset,
                         frames_dir=str(subdir),
                         output_dir=str(sample_output),
                         sample_id=sample_id,
@@ -67,10 +72,10 @@ def parse_vqa_datasets(config: Config) -> List[VQADatasetCtx]:
                     ctx.frame_files = _discover_frames(str(subdir))
                     ctxs.append(ctx)
             else:
-                sample_id = ds.subset
+                sample_id = ds.frame_subset
                 ctx = VQADatasetCtx(
                     data_root=ds.root,
-                    subset=ds.subset,
+                    frame_subset=ds.frame_subset,
                     frames_dir=str(data_dir),
                     output_dir=str(run_dir),
                     sample_id=sample_id,
@@ -269,7 +274,7 @@ def create_vqa_app(config: Config) -> FastAPI:
 
         print(
             f"[VQA Server] Started. Mode=VQA\n"
-            f"[Plan] Datasets={[(c.subset, c.sample_id, len(c.frame_files)) for c in dataset_ctxs]}\n"
+            f"[Plan] Datasets={[(c.frame_subset, c.sample_id, len(c.frame_files)) for c in dataset_ctxs]}\n"
             f"[Plan] Types={question_types}  sample_hz={sample_hz}\n"
             f"[Resume] Already done: {done_tasks}/{total_tasks} (frame×type)"
         )
@@ -318,7 +323,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                 with queue_lock:
                     if not job_queue and not inflight:
                         Path(_done_marker_path(ctx.output_dir)).touch()
-                        print(f"[VQA] Completed {ctx.subset}/{ctx.sample_id}. Switching...")
+                        print(f"[VQA] Completed {ctx.frame_subset}/{ctx.sample_id}. Switching...")
                         dataset_idx += 1
                 time.sleep(0.2)
                 continue
@@ -340,7 +345,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                     st["cur_idx"] += 1
                     continue
 
-                task_id = f"vqa::{ctx.subset}::{ctx.sample_id}::{frame_id}"
+                task_id = f"vqa::{ctx.frame_subset}::{ctx.sample_id}::{frame_id}"
 
                 with queue_lock:
                     if any(j["task_id"] == task_id for j in job_queue) or task_id in inflight:
@@ -357,7 +362,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                     "images": images_b64,
                     "question_types": missing_types,
                     "meta": {
-                        "subset": ctx.subset,
+                        "subset": ctx.frame_subset,
                         "sample_id": ctx.sample_id,
                         "frame_id": frame_id,
                         "frame_idx": frame_idx,
@@ -388,7 +393,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                         st["cur_idx"] += 1
                         continue
 
-                    ntid = f"vqa::{ctx.subset}::{ctx.sample_id}::{nfid}"
+                    ntid = f"vqa::{ctx.frame_subset}::{ctx.sample_id}::{nfid}"
                     with queue_lock:
                         if any(j["task_id"] == ntid for j in job_queue) or ntid in inflight:
                             st["cur_idx"] += 1
@@ -401,7 +406,7 @@ def create_vqa_app(config: Config) -> FastAPI:
                         "images": [_encode_image_b64(np_)],
                         "question_types": n_missing,
                         "meta": {
-                            "subset": ctx.subset,
+                            "subset": ctx.frame_subset,
                             "sample_id": ctx.sample_id,
                             "frame_id": nfid,
                             "frame_idx": nfi,

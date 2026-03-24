@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 import uvicorn
 
-from ..config import Config, DatasetConfig
+from ..config import Config, DatasetConfig, select_sample_ids
 from .windowing import (
     read_video_info, build_windows, FrameExtractor,
     build_segments_via_cuts, Window
@@ -33,7 +33,7 @@ class SubmitModel(BaseModel):
 class DatasetCtx:
     """Dataset context for processing."""
     data_root: str
-    subset: str
+    video_subset: str
     data_dir: str
     run_dir: str
     samples_dir: str
@@ -44,20 +44,21 @@ def parse_datasets(config: Config) -> List[DatasetCtx]:
     """Parse dataset configurations into contexts."""
     ctxs = []
     for ds in config.datasets:
-        data_dir = Path(ds.root) / ds.subset
-        run_dir = Path(config.run.base_dir) / ds.subset / config.run.run_id
+        data_dir = Path(ds.root) / ds.video_subset
+        run_dir = Path(config.run.base_dir) / ds.video_subset / config.run.run_id
         samples_dir = run_dir / "samples"
         samples_dir.mkdir(parents=True, exist_ok=True)
         
         # List sample IDs
         if data_dir.exists():
             sample_ids = sorted([p.name for p in data_dir.iterdir() if p.is_dir()])
+            sample_ids = select_sample_ids(sample_ids, ds.data)
         else:
             sample_ids = []
         
         ctxs.append(DatasetCtx(
             data_root=ds.root,
-            subset=ds.subset,
+            video_subset=ds.video_subset,
             data_dir=str(data_dir),
             run_dir=str(run_dir),
             samples_dir=str(samples_dir),
@@ -72,8 +73,8 @@ def create_app(config: Config) -> FastAPI:
     
     # Initialize dataset contexts
     dataset_ctxs = parse_datasets(config)
-    samples_dir_by_subset = {ctx.subset: ctx.samples_dir for ctx in dataset_ctxs}
-    data_dir_by_subset = {ctx.subset: ctx.data_dir for ctx in dataset_ctxs}
+    samples_dir_by_subset = {ctx.video_subset: ctx.samples_dir for ctx in dataset_ctxs}
+    data_dir_by_subset = {ctx.video_subset: ctx.data_dir for ctx in dataset_ctxs}
     
     # Thread-safe job management
     queue_lock = threading.Lock()
@@ -135,7 +136,7 @@ def create_app(config: Config) -> FastAPI:
                         print(f"[Err] Task {tid} failed max retries, dropping")
             return {"status": "retry_triggered"}
         
-        subset = str(res.meta.get("subset", dataset_ctxs[0].subset if dataset_ctxs else "default"))
+        subset = str(res.meta.get("subset", dataset_ctxs[0].video_subset if dataset_ctxs else "default"))
         sid = str(res.meta.get("sample_id", "unknown"))
         w_id = res.meta.get("window_id")
         
@@ -173,14 +174,14 @@ def create_app(config: Config) -> FastAPI:
             f"[Server] Started. IMG=PNG, "
             f"FIXED={config.windowing.target_width}x{config.windowing.target_height}, "
             f"FRAMES_PER_WINDOW={config.windowing.frames_per_window}\n"
-            f"[Plan] DATASETS={[(c.data_dir, c.subset) for c in dataset_ctxs]}\n"
+            f"[Plan] DATASETS={[(c.data_dir, c.video_subset) for c in dataset_ctxs]}\n"
             f"[Resume] Already done: {done}/{progress_total} (computed_total={total})"
         )
         
         # Initialize states
         states = {}
         for ctx in dataset_ctxs:
-            states[ctx.subset] = {
+            states[ctx.video_subset] = {
                 "cur_idx": 0,
                 "sample_status": {sid: 0 for sid in ctx.sample_ids},
             }
@@ -211,7 +212,7 @@ def create_app(config: Config) -> FastAPI:
                 continue
             
             ctx = dataset_ctxs[dataset_idx]
-            st = states[ctx.subset]
+            st = states[ctx.video_subset]
             cur_idx = st["cur_idx"]
             sample_status = st["sample_status"]
             sample_ids = ctx.sample_ids
@@ -220,7 +221,7 @@ def create_app(config: Config) -> FastAPI:
             if cur_idx >= len(sample_ids):
                 with queue_lock:
                     if not job_queue and not inflight:
-                        print(f"[Dataset] Completed {ctx.subset}. Switching to next...")
+                        print(f"[Dataset] Completed {ctx.video_subset}. Switching to next...")
                         dataset_idx += 1
                 time.sleep(0.2)
                 continue
@@ -278,7 +279,7 @@ def create_app(config: Config) -> FastAPI:
                                 if w.window_id in done_wids:
                                     continue
                                 
-                                tid = f"{ctx.subset}::{sid}_w{w.window_id}"
+                                tid = f"{ctx.video_subset}::{sid}_w{w.window_id}"
                                 
                                 # Check if already active
                                 active = False
@@ -298,7 +299,7 @@ def create_app(config: Config) -> FastAPI:
                                         config.windowing.png_compression
                                     ),
                                     "meta": {
-                                        "subset": ctx.subset,
+                                        "subset": ctx.video_subset,
                                         "sample_id": sid,
                                         "window_id": w.window_id,
                                         "frame_ids": w.frame_ids
@@ -316,7 +317,7 @@ def create_app(config: Config) -> FastAPI:
                             sample_status[sid] = 2
                     
                     except Exception as e:
-                        print(f"[Err] {ctx.subset}/{sid}: {e}")
+                        print(f"[Err] {ctx.video_subset}/{sid}: {e}")
                         import traceback
                         traceback.print_exc()
                         st["cur_idx"] += 1
@@ -343,7 +344,7 @@ def create_app(config: Config) -> FastAPI:
                                         pass
                         
                         if len(by_wid) >= len(windows):
-                            print(f"[Finalize] {ctx.subset}/{sid}...")
+                            print(f"[Finalize] {ctx.video_subset}/{sid}...")
                             
                             final_res = build_segments_via_cuts(
                                 sid, windows, by_wid, fps, nframes,
@@ -362,10 +363,10 @@ def create_app(config: Config) -> FastAPI:
                             
                             if not already_done:
                                 global_done += 1
-                            print(f"[Progress] {global_done}/{progress_total} (finished: {ctx.subset}/{sid})")
+                            print(f"[Progress] {global_done}/{progress_total} (finished: {ctx.video_subset}/{sid})")
                     
                     except Exception as e:
-                        print(f"[Err-Finalize] {ctx.subset}/{sid}: {e}")
+                        print(f"[Err-Finalize] {ctx.video_subset}/{sid}: {e}")
             
             time.sleep(0.1)
     

@@ -13,7 +13,7 @@ from PIL import Image
 
 from ..config import Config
 from ..vlm import create_backend
-from .prompt import build_cot_prompt
+from ..prompt.loader import build_cot_prompt
 
 MAX_LOCAL_RETRIES = 2
 
@@ -134,7 +134,12 @@ def run_cot_worker(config: Config) -> None:
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
 
                 # ---- VLM inference ----
-                prompt = build_cot_prompt(high_level_instruction, subtask, len(images))
+                prompt = build_cot_prompt(
+                    config.prompt.cot_task_id,
+                    high_level_instruction,
+                    subtask,
+                    len(images),
+                )
                 vlm_json: Dict[str, Any] = {}
                 raw_result: Any = None
                 t0 = time.time()

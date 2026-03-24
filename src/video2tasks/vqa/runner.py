@@ -4,7 +4,8 @@ import json
 from typing import Dict, Any, List, Optional
 
 from .types import VQAResult, VQAQuestion
-from .prompts import VQAPromptRegistry, get_default_prompts
+from ..prompt.vlm.task00001 import VQAPromptRegistry
+from ..prompt.loader import create_vqa_prompt_registry
 
 
 def parse_vqa_response(raw_output: str) -> List[VQAQuestion]:
@@ -53,10 +54,11 @@ class VQARunner:
         self,
         backend: Any,  # VLMBackend
         prompt_registry: Optional[VQAPromptRegistry] = None,
-        default_question_types: Optional[List[str]] = None
+        default_question_types: Optional[List[str]] = None,
+        task_id: str = "task00001",
     ):
         self.backend = backend
-        self.prompt_registry = prompt_registry or get_default_prompts()
+        self.prompt_registry = prompt_registry or create_vqa_prompt_registry(task_id)
         self.default_question_types = default_question_types or self.prompt_registry.list_types()
     
     def build_prompt(self, question_types: Optional[List[str]] = None, n_images: int = 1) -> str:

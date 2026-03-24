@@ -1,19 +1,23 @@
-# Video2Tasks Configuration
-# Copy this file to config.yaml and customize for your setup
+# Video2Tasks Unified Configuration
+# This file can run segment / vqa / cot by changing run.task_type.
 
-# Dataset configuration
-# Format: list of {root: path, subset: name} pairs
 datasets:
-  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1_new/lerobot/Teleop_251103_Sort_Anonymous_10Hz_old"  # Path to your video data directory
-    subset: "video_retarget"   # Subdirectory name containing video samples
+  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1/lerobot/Teleop_251022_GrapeCleanbgWaist_Anonymous_10Hz/Teleop_251022_GrapeCleanbgWaist_Anonymous_10Hz_old"
+    video_subset: "video_retarget_head"
+    frame_subset: "frame_retarget_head"
+    data: [0]  # Optional: process only selected samples by sorted index or sample id
 
-# Run configuration
 run:
-  base_dir: "./runs"  # Base directory for all outputs
-  run_id: "default"    # Run identifier (creates subdirectory)
-  task_type: "segment"  # "segment" (default) or "vqa"
+  base_dir: "./324runs"
+  run_id: "default"
+  task_type: "segment"  # segment | vqa | cot
 
-# Server configuration
+# Prompt task selection by mode
+prompt:
+  segment_task_id: "task00002"
+  cot_task_id: "task00002"
+  vqa_task_id: "task00002"
+
 server:
   host: "0.0.0.0"
   port: 8099
@@ -22,41 +26,63 @@ server:
   max_retries_per_job: 5
   auto_exit_after_all_done: false
 
-# Worker configuration
 worker:
   server_url: "http://127.0.0.1:8099"
-  backend: "qwen3vl"  # Options: "dummy", "qwen3vl", "remote_api"
-  
-  # Qwen3VL-specific settings (only used when backend: qwen3vl)
-  qwen3vl:
-    model_path: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/models/qwen/Qwen3-VL-32B-Instruct"  # Or HuggingFace model name
-    device_map: "balanced"  # "auto", "balanced", "balanced_low_0", or specific device
+  backend: "qwen3vl"  # dummy | qwen3vl | remote_api
 
-  # Remote API settings (only used when backend: remote_api)
+  qwen3vl:
+    model_path: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/models/qwen/Qwen3-VL-4B-Instruct"
+    device_map: "balanced"
+
   remote_api:
     api_url: "http://127.0.0.1:8080/infer"
     api_key: ""
     timeout_sec: 60.0
     headers: {}
 
-# Windowing configuration
+# Used in segment mode
 windowing:
-  window_sec: 16.0        # Window duration in seconds
-  step_sec: 8.0          # Step size between windows
-  frames_per_window: 16  # Number of frames to sample per window
-  target_width: 424      # Target frame width
-  target_height: 240     # Target frame height
-  png_compression: 1     # PNG compression level (0-9)
+  window_sec: 6
+  step_sec: 2
+  frames_per_window: 12
+  target_width: 424
+  target_height: 240
+  png_compression: 1
 
-# Progress configuration
-progress:
-  total_override: 0  # Override total sample count (0 = auto-detect)
+# Used in vqa mode
+vqa:
+  question_types: ["spatial", "attribute", "existence", "count", "manipulation"]
+  questions_per_type:
+    spatial: 2
+    attribute: 2
+    existence: 2
+    count: 2
+    manipulation: 2
+  task_context: |
+    High-level task:
+    Put the grapes into the black basket.
 
-# Logging
-logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+    Object inventory (CanonicalRef only):
+    - black basket
+    - brown basket
+    - grapes
+  sample_hz: 1
+  target_width: 424
+  target_height: 240
+  output_format: "jsonl"
 
+# Used in cot mode
 cot:
   segment_run_id: "default"
-  high_level_instruction: "Put the toy cars into the brown basket and put the fruit into the black basket"
-  frames_per_segment: 8
+  high_level_instruction: "Put the grapes into the black basket."
+  sample_hz: 2.0
+  min_frames_per_segment: 4
+  max_frames_per_segment: 64
+  target_width: 424
+  target_height: 240
+
+progress:
+  total_override: 0
+
+logging:
+  level: "INFO"

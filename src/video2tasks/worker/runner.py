@@ -12,7 +12,7 @@ from PIL import Image
 
 from ..config import Config
 from ..vlm import create_backend
-from ..prompt import prompt_switch_detection
+from ..prompt.loader import build_segment_prompt
 
 MAX_LOCAL_RETRIES = 2
 
@@ -109,7 +109,7 @@ def run_worker(config: Config) -> None:
                         images.append(np.zeros((224, 224, 3), dtype=np.uint8))
                 
                 # Run inference with proper prompt (local retry on empty output)
-                prompt = prompt_switch_detection(len(images))
+                prompt = build_segment_prompt(config.prompt.segment_task_id, len(images))
                 vlm_json: Dict[str, Any] = {}
                 
                 for attempt in range(MAX_LOCAL_RETRIES):

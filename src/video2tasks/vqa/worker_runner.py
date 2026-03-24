@@ -13,7 +13,7 @@ from PIL import Image
 
 from ..config import Config
 from ..vlm import create_backend
-from .prompts import get_default_prompts
+from ..prompt.loader import create_vqa_prompt_registry
 
 MAX_LOCAL_RETRIES = 2
 
@@ -78,7 +78,7 @@ def run_vqa_worker(config: Config) -> None:
     backend.warmup()
 
     # ---- Prompt registry ----
-    registry = get_default_prompts()
+    registry = create_vqa_prompt_registry(config.prompt.vqa_task_id)
     questions_per_type = getattr(config.vqa, "questions_per_type", {}) or {}
     task_context = getattr(config.vqa, "task_context", "") or ""
 

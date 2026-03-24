@@ -1,6 +1,5 @@
 """Robot Video Segmentor - Configuration management."""
 
-from dataclasses import dataclass, field
 from typing import List, Optional, Union
 from pathlib import Path
 import json
@@ -12,7 +11,19 @@ from pydantic import BaseModel, Field, field_validator
 class DatasetConfig(BaseModel):
     """Dataset configuration."""
     root: str = Field(..., description="Path to data root directory")
-    subset: str = Field(..., description="Subset/directory name")
+    video_subset: str = Field(
+        ..., description="Subset containing per-sample videos (used by segment/cot)"
+    )
+    frame_subset: str = Field(
+        ..., description="Subset containing per-sample extracted frames (used by vqa)"
+    )
+    data: List[Union[int, str]] = Field(
+        default_factory=list,
+        description=(
+            "Optional sample selector. Supports integer indices over sorted sample list "
+            "or explicit sample ids. Example: [0, 1] or ['000000', '000001']."
+        ),
+    )
 
 
 class ServerConfig(BaseModel):
@@ -85,6 +96,14 @@ class LoggingConfig(BaseModel):
         if v_upper not in allowed:
             raise ValueError(f"level must be one of {allowed}, got {v}")
         return v_upper
+
+
+class PromptConfig(BaseModel):
+    """Prompt task selection configuration."""
+
+    segment_task_id: str = Field(default="task00001", description="Task id for segment prompts")
+    cot_task_id: str = Field(default="task00001", description="Task id for CoT prompts")
+    vqa_task_id: str = Field(default="task00001", description="Task id for VQA prompts")
 
 
 class VQAConfig(BaseModel):
@@ -163,9 +182,17 @@ class CoTConfig(BaseModel):
         default="",
         description="High-level task instruction, e.g. 'Put the toy cars into the brown basket and put the fruit into the black basket'"
     )
-    frames_per_segment: int = Field(
-        default=8,
-        description="Number of frames to sample from each segment"
+    sample_hz: float = Field(
+        default=2.0,
+        description="Sampling frequency in Hz inside each segment (time-aligned to segment span)"
+    )
+    min_frames_per_segment: int = Field(
+        default=4,
+        description="Minimum sampled frames per segment"
+    )
+    max_frames_per_segment: int = Field(
+        default=64,
+        description="Maximum sampled frames per segment"
     )
     target_width: int = Field(
         default=424,
@@ -175,6 +202,20 @@ class CoTConfig(BaseModel):
         default=240,
         description="Target frame height for VLM input"
     )
+
+    @field_validator("sample_hz")
+    @classmethod
+    def validate_sample_hz(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("cot.sample_hz must be > 0")
+        return v
+
+    @field_validator("min_frames_per_segment", "max_frames_per_segment")
+    @classmethod
+    def validate_positive_frames(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("cot frame limits must be > 0")
+        return v
 
 
 class Config(BaseModel):
@@ -186,6 +227,7 @@ class Config(BaseModel):
     windowing: WindowingConfig = Field(default_factory=WindowingConfig)
     vqa: VQAConfig = Field(default_factory=VQAConfig)
     cot: CoTConfig = Field(default_factory=CoTConfig)
+    prompt: PromptConfig = Field(default_factory=PromptConfig)
     progress: ProgressConfig = Field(default_factory=ProgressConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
@@ -253,15 +295,53 @@ class Config(BaseModel):
 
 def _parse_datasets_env(spec: str) -> List[DatasetConfig]:
     """Parse DATASETS environment variable."""
+    """
+    New format (no backward compatibility):
+    DATASETS="<root>:<video_subset>:<frame_subset>[;<root>:<video_subset>:<frame_subset>]"
+    """
     configs = []
     parts = [p.strip() for p in spec.split(";") if p.strip()]
     for p in parts:
-        if ":" in p:
-            root, subset = p.split(":", 1)
-            configs.append(DatasetConfig(root=root.strip(), subset=subset.strip()))
-        else:
-            data_dir = Path(p.rstrip("/"))
-            root = str(data_dir.parent)
-            subset = data_dir.name
-            configs.append(DatasetConfig(root=root, subset=subset))
+        fields = [x.strip() for x in p.split(":")]
+        if len(fields) != 3 or any(not x for x in fields):
+            raise ValueError(
+                "Invalid DATASETS item. Expected '<root>:<video_subset>:<frame_subset>'"
+            )
+        root, video_subset, frame_subset = fields
+        configs.append(
+            DatasetConfig(
+                root=root,
+                video_subset=video_subset,
+                frame_subset=frame_subset,
+            )
+        )
     return configs
+
+
+def select_sample_ids(all_sample_ids: List[str], data_selector: List[Union[int, str]]) -> List[str]:
+    """Filter sample ids by selector list.
+
+    Selector items:
+    - int: positional index in ``all_sample_ids`` (sorted order)
+    - str: exact sample id match
+    """
+    if not data_selector:
+        return all_sample_ids
+
+    selected: List[str] = []
+    seen = set()
+    for item in data_selector:
+        sid: Optional[str] = None
+        if isinstance(item, int):
+            if 0 <= item < len(all_sample_ids):
+                sid = all_sample_ids[item]
+        else:
+            s = str(item)
+            if s in all_sample_ids:
+                sid = s
+
+        if sid is not None and sid not in seen:
+            seen.add(sid)
+            selected.append(sid)
+
+    return selected

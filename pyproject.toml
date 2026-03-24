@@ -59,6 +59,7 @@ dev = [
 v2t-server = "video2tasks.cli.server:main"
 v2t-worker = "video2tasks.cli.worker:main"
 v2t-validate = "video2tasks.cli.validate_config:main"
+v2t-prompt-preview = "video2tasks.prompt.preview_prompt:main"
 
 [project.urls]
 Homepage = "https://github.com/ly-geming/video2tasks"
