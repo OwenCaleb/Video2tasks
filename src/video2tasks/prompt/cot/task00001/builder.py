@@ -3,9 +3,16 @@
 import time
 from typing import List
 
-from ...common import DEFAULT_OBJECT_INVENTORY_BLOCK
 from .blocks import ROLE_BLOCK, CANONICAL_POLICY_BLOCK, SLOT_RULE_BLOCK, OUTPUT_BLOCK
 from .examples import COT_EXAMPLES
+
+TASK00001_OBJECT_INVENTORY = (
+    '''Object inventory:
+Descriptor : CanonicalRef
+A black basket : black basket
+A brown basket : brown basket
+A grape : grape'''
+)
 
 
 def _pick_examples(now_ns: int, k: int = 1) -> List[dict]:
@@ -16,27 +23,20 @@ def _pick_examples(now_ns: int, k: int = 1) -> List[dict]:
     return [COT_EXAMPLES[(start + i) % len(COT_EXAMPLES)] for i in range(size)]
 
 
-def build_cot_prompt(
-    high_level_instruction: str,
-    subtask: str,
-    n_images: int,
-) -> str:
-    """Build CoT prompt with compact rotating demo selection."""
+def build_cot_prompt(high_level_instruction: str, subtask: str, n_images: int) -> str:
+    """Build CoT prompt for task00001 using rotating compact demos."""
     lines = [
         ROLE_BLOCK,
         "",
         "### Inputs",
         f'High-level task: "{high_level_instruction}"',
         f'Subtask performed: "{subtask}"',
-        f"Visual evidence: {n_images} frame(s) from the video segment",
+        f"Visual evidence: {n_images} frame(s)",
         "",
-        DEFAULT_OBJECT_INVENTORY_BLOCK,
+        TASK00001_OBJECT_INVENTORY,
         CANONICAL_POLICY_BLOCK,
         "### Your job",
-        (
-            "Reconstruct a compact state snapshot that justifies why this subtask "
-            "is the next correct action."
-        ),
+        "Produce a compact state snapshot to justify next action selection.",
         SLOT_RULE_BLOCK,
         OUTPUT_BLOCK,
         "",

@@ -15,9 +15,9 @@ CORE_LOGIC_BLOCK = (
 
 CANONICAL_POLICY_BLOCK = (
     "### Canonical Reference Policy\n"
-    "Use only these CanonicalRef names: black basket, brown basket, grapes.\n"
+    "Use only these CanonicalRef names: black basket, brown basket, toy car, avocado, orange, pumpkin, apple.\n"
     "### Instruction Template Constraint\n"
-    "Instruction format: Put the <OBJECT> into the <Object>\n"
+    "Instruction format: Place the <OBJECT> in the <OBJECT>.\n"
     "Use CanonicalRef exactly.\n\n"
 )
 

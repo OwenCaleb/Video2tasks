@@ -7,11 +7,12 @@ from .blocks import ROLE_BLOCK, CANONICAL_POLICY_BLOCK, SLOT_RULE_BLOCK, OUTPUT_
 from .examples import COT_EXAMPLES
 
 TASK00002_OBJECT_INVENTORY = (
-    "Object inventory:\n"
-    "Descriptor : CanonicalRef\n"
-    "A black rectangular basket : black basket\n"
-    "A brown rectangular basket : brown basket\n"
-    "A bunch of grapes : grapes\n"
+    '''Object inventory:
+Descriptor : CanonicalRef
+A needle tube : needle tube
+A black basket : black basket
+A brown basket : brown basket
+A grape : grape'''
 )
 
 

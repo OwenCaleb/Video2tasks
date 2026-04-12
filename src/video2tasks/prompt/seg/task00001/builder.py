@@ -3,7 +3,6 @@
 import time
 from typing import List
 
-from ...common import DEFAULT_HIGH_LEVEL_TASK, DEFAULT_OBJECT_INVENTORY_BLOCK
 from .blocks import (
     ROLE_AND_GOAL_BLOCK,
     CORE_LOGIC_BLOCK,
@@ -12,34 +11,39 @@ from .blocks import (
 )
 from .examples import SEGMENT_EXAMPLES
 
+TASK00001_HIGH_LEVEL = "Put the grapes into the black basket."
+TASK00001_OBJECT_INVENTORY = (
+    '''Object inventory:
+Descriptor : CanonicalRef
+A black basket : black basket
+A brown basket : brown basket
+A grape : grape'''
+)
+
 
 def _pick_examples(now_ns: int, k: int = 1) -> List[dict]:
     if not SEGMENT_EXAMPLES:
         return []
     size = min(k, len(SEGMENT_EXAMPLES))
     start = now_ns % len(SEGMENT_EXAMPLES)
-    picked = []
-    for i in range(size):
-        picked.append(SEGMENT_EXAMPLES[(start + i) % len(SEGMENT_EXAMPLES)])
-    return picked
+    return [SEGMENT_EXAMPLES[(start + i) % len(SEGMENT_EXAMPLES)] for i in range(size)]
 
 
 def prompt_switch_detection(n_images: int) -> str:
-    """Build segment switch-detection prompt with time-rotated few-shot examples."""
+    """Build segment prompt for task00001 with compact rotating examples."""
     lines = [
         (
             f"You are a robotic vision analyzer watching a {n_images}-frame video clip "
             "of household manipulation tasks."
         ),
-        f"**Mapping:** Image indices range from 0 to {n_images - 1}.",
+        f"Image indices range from 0 to {n_images - 1}.",
         "",
         ROLE_AND_GOAL_BLOCK,
         CORE_LOGIC_BLOCK,
-        "### Task Context (Optional Prior Knowledge)",
-        "High-level task:",
-        DEFAULT_HIGH_LEVEL_TASK,
+        "### Task Context",
+        f"High-level task: {TASK00001_HIGH_LEVEL}",
         "",
-        DEFAULT_OBJECT_INVENTORY_BLOCK,
+        TASK00001_OBJECT_INVENTORY,
         CANONICAL_POLICY_BLOCK,
         OUTPUT_FORMAT_BLOCK,
         "",

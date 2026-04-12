@@ -1,0 +1,191 @@
+# 15 individual tasks mapped to 15 datasets
+# Each task has its own objects inventory and instructions
+# Key should use dataset name WITHOUT trailing `_old`.
+
+Teleop_251022_GrapeCleanbgWaist_Anonymous_10Hz:
+  segment_task_id: task00001
+  vqa_task_id: task00001
+  cot_task_id: task00001
+  objects:
+    - black basket
+    - brown basket
+    - grape
+
+Teleop_251023_GrapeCleanbgWaist_Anonymous_10Hz:
+  segment_task_id: task00002
+  vqa_task_id: task00002
+  cot_task_id: task00002
+  objects:
+    - needle tube
+    - black basket
+    - brown basket
+    - grape
+
+Teleop_251024_FruitCar_Anonymous_10Hz:
+  segment_task_id: task00003
+  vqa_task_id: task00003
+  cot_task_id: task00003
+  objects:
+    - black basket
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+
+Teleop_251025_FruitCar_Anonymous_10Hz:
+  segment_task_id: task00004
+  vqa_task_id: task00004
+  cot_task_id: task00004
+  objects:
+    - black basket
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251027_Sort_Anonymous_10Hz:
+  segment_task_id: task00005
+  vqa_task_id: task00005
+  cot_task_id: task00005
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251027_SortOneObjRecover_Anonymous_10Hz:
+  segment_task_id: task00006
+  vqa_task_id: task00006
+  cot_task_id: task00006
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251028_SortStand_Anonymous_10Hz:
+  segment_task_id: task00007
+  vqa_task_id: task00007
+  cot_task_id: task00007
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251028_SortStand_Swx_10Hz:
+  segment_task_id: task00008
+  vqa_task_id: task00008
+  cot_task_id: task00008
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251029_SortStandRecover_Anonymous_10Hz:
+  segment_task_id: task00009
+  vqa_task_id: task00009
+  cot_task_id: task00009
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251029_SortStandCompact_Anonymous_10Hz:
+  segment_task_id: task00010
+  vqa_task_id: task00010
+  cot_task_id: task00010
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251101_Sort_Anonymous_10Hz:
+  segment_task_id: task00011
+  vqa_task_id: task00011
+  cot_task_id: task00011
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+
+Teleop_251101_SortStandRecover_Anonymous_10Hz:
+  segment_task_id: task00012
+  vqa_task_id: task00012
+  cot_task_id: task00012
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251101_SortStandRecoverLong_Anonymous_10Hz:
+  segment_task_id: task00013
+  vqa_task_id: task00013
+  cot_task_id: task00013
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251103_Sort_Anonymous_10Hz:
+  segment_task_id: task00014
+  vqa_task_id: task00014
+  cot_task_id: task00014
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin
+
+Teleop_251103_SortStandRecoverLong_Anonymous_10Hz:
+  segment_task_id: task00015
+  vqa_task_id: task00015
+  cot_task_id: task00015
+  objects:
+    - brown basket
+    - grape
+    - avocado
+    - kiwi
+    - apple
+    - orange
+    - pumpkin

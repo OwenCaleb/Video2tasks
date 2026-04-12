@@ -5,69 +5,50 @@ set -euo pipefail
 # 应与 run_serial_gpu1.sh 中的配置保持一致
 LOGDIR="logs"
 PIDDIR="pids"
-TAGS=("segment" "vqa" "cot")
 
 # ===========================================
 
 echo "===== CLEANUP GPU1 PROCESSES ====="
 echo "[cleanup] config: PIDDIR=$PIDDIR LOGDIR=$LOGDIR"
 
-cleanup_tag() {
-  local tag="$1"
-  
-  echo
-  echo "[${tag}] cleaning up..."
-  
-  # Kill worker
-  local wpid_file="$PIDDIR/v2t-worker.${tag}.pid"
-  if [ -f "$wpid_file" ]; then
-    local wpid
-    wpid="$(cat "$wpid_file" 2>/dev/null || true)"
-    if [ -n "$wpid" ]; then
-      echo "[${tag}] stopping worker pid=$wpid ..."
-      if kill -0 "$wpid" 2>/dev/null; then
-        kill "$wpid" 2>/dev/null || true
-        sleep 1
-        if kill -0 "$wpid" 2>/dev/null; then
-          echo "[${tag}] force killing worker (SIGKILL)..."
-          kill -9 "$wpid" 2>/dev/null || true
-        fi
-        echo "[${tag}] worker killed."
-      else
-        echo "[${tag}] worker pid=$wpid not running (already dead)."
-      fi
-    fi
-    rm -f "$wpid_file"
-    echo "[${tag}] removed $wpid_file"
+cleanup_pid_file() {
+  local pid_file="$1"
+  local proc_name="$2"
+
+  if [ ! -f "$pid_file" ]; then
+    return
   fi
-  
-  # Kill server
-  local spid_file="$PIDDIR/v2t-server.${tag}.pid"
-  if [ -f "$spid_file" ]; then
-    local spid
-    spid="$(cat "$spid_file" 2>/dev/null || true)"
-    if [ -n "$spid" ]; then
-      echo "[${tag}] stopping server pid=$spid ..."
-      if kill -0 "$spid" 2>/dev/null; then
-        kill "$spid" 2>/dev/null || true
-        sleep 1
-        if kill -0 "$spid" 2>/dev/null; then
-          echo "[${tag}] force killing server (SIGKILL)..."
-          kill -9 "$spid" 2>/dev/null || true
-        fi
-        echo "[${tag}] server killed."
-      else
-        echo "[${tag}] server pid=$spid not running (already dead)."
+
+  local pid
+  pid="$(cat "$pid_file" 2>/dev/null || true)"
+  echo "[$proc_name] pid_file=$pid_file pid=$pid"
+
+  if [ -n "$pid" ]; then
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      sleep 1
+      if kill -0 "$pid" 2>/dev/null; then
+        echo "[$proc_name] force killing pid=$pid"
+        kill -9 "$pid" 2>/dev/null || true
       fi
+    else
+      echo "[$proc_name] pid=$pid already stopped"
     fi
-    rm -f "$spid_file"
-    echo "[${tag}] removed $spid_file"
   fi
+
+  rm -f "$pid_file"
 }
 
-# Cleanup each tag
-for tag in "${TAGS[@]}"; do
-  cleanup_tag "$tag"
+echo
+echo "[cleanup] scanning pid files under $PIDDIR"
+for f in "$PIDDIR"/v2t-server.*.pid; do
+  [ -e "$f" ] || continue
+  cleanup_pid_file "$f" "server"
+done
+
+for f in "$PIDDIR"/v2t-worker.*.pid; do
+  [ -e "$f" ] || continue
+  cleanup_pid_file "$f" "worker"
 done
 
 # Show remaining pids and logs

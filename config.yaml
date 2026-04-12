@@ -2,10 +2,10 @@
 # This file can run segment / vqa / cot by changing run.task_type.
 
 datasets:
-  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1/lerobot/Teleop_251022_GrapeCleanbgWaist_Anonymous_10Hz/Teleop_251022_GrapeCleanbgWaist_Anonymous_10Hz_old"
+  - root: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/data/g1/lerobot/Teleop_251027_Sort_Anonymous_10Hz/Teleop_251027_Sort_Anonymous_10Hz_old"
     video_subset: "video_retarget_head"
     frame_subset: "frame_retarget_head"
-    data: [0]  # Optional: process only selected samples by sorted index or sample id
+    # data: [0]  # Optional: process only selected samples by sorted index or sample id
 
 run:
   base_dir: "./324runs"
@@ -31,7 +31,7 @@ worker:
   backend: "qwen3vl"  # dummy | qwen3vl | remote_api
 
   qwen3vl:
-    model_path: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/models/qwen/Qwen3-VL-4B-Instruct"
+    model_path: "/mnt/nas_ssd/workspace/wenboli/projects/Wall-X/wallx/models/qwen/Qwen3-VL-32B-Instruct"
     device_map: "balanced"
 
   remote_api:
@@ -42,9 +42,9 @@ worker:
 
 # Used in segment mode
 windowing:
-  window_sec: 6
-  step_sec: 2
-  frames_per_window: 12
+  window_sec: 16
+  step_sec: 8.0
+  frames_per_window: 32
   target_width: 424
   target_height: 240
   png_compression: 1

@@ -13,11 +13,12 @@ from .examples import SEGMENT_EXAMPLES
 
 TASK00002_HIGH_LEVEL = "Put the grapes into the black basket."
 TASK00002_OBJECT_INVENTORY = (
-    "Object inventory:\n"
-    "Descriptor : CanonicalRef\n"
-    "A black rectangular basket : black basket\n"
-    "A brown rectangular basket : brown basket\n"
-    "A bunch of grapes : grapes\n"
+    '''Object inventory:
+Descriptor : CanonicalRef
+A needle tube : needle tube
+A black basket : black basket
+A brown basket : brown basket
+A grape : grape'''
 )
 
 
